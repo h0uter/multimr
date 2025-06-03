@@ -4,8 +4,10 @@ use ratatui::{
     DefaultTerminal, Frame,
     style::Stylize,
     text::Line,
-    widgets::{Block, Paragraph},
+    widgets::{Block, List},
 };
+use std::fs;
+use std::env;
 
 fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
@@ -20,12 +22,31 @@ fn main() -> color_eyre::Result<()> {
 pub struct App {
     /// Is the application running?
     running: bool,
+    /// List of directories in the current working directory.
+    dirs: Vec<String>,
 }
 
 impl App {
     /// Construct a new instance of [`App`].
     pub fn new() -> Self {
-        Self::default()
+        let mut app = Self::default();
+        // Populate dirs with all directories in the current working directory
+        if let Ok(cwd) = env::current_dir() {
+            if let Ok(entries) = fs::read_dir(cwd) {
+                app.dirs = entries
+                    .filter_map(|entry| entry.ok())
+                    .filter_map(|entry| {
+                        let path = entry.path();
+                        if path.is_dir() {
+                            path.file_name().map(|n| n.to_string_lossy().to_string())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+            }
+        }
+        app
     }
 
     /// Run the application's main loop.
@@ -45,18 +66,12 @@ impl App {
     /// - <https://docs.rs/ratatui/latest/ratatui/widgets/index.html>
     /// - <https://github.com/ratatui/ratatui/tree/main/ratatui-widgets/examples>
     fn render(&mut self, frame: &mut Frame) {
-        let title = Line::from("Mutli MR")
-            .bold()
-            .blue()
-            .centered();
-        let text = "Hello, multimr!\n\n\
-            Press `Esc`, `Ctrl-C` or `q` to stop running.";
-        frame.render_widget(
-            Paragraph::new(text)
-                .block(Block::bordered().title(title))
-                .centered(),
-            frame.area(),
-        )
+        use ratatui::widgets::ListItem;
+        let title = Line::from("Mutli MR").bold().blue().centered();
+        let items: Vec<ListItem> = self.dirs.iter().map(|d| ListItem::new(d.clone())).collect();
+        let list = List::new(items)
+            .block(Block::bordered().title(title));
+        frame.render_widget(list, frame.area());
     }
 
     /// Reads the crossterm events and updates the state of [`App`].
