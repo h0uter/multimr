@@ -1,7 +1,7 @@
 [package]
 name = "multimr"
 version = "0.1.0"
-description = "easily create identical MR/PRs on multiple repo's."
+description = "Easily create identical MR/PRs on multiple repo's."
 authors = ["W. Meijer <houterm@gmail.com>"]
 license = "MIT"
 edition = "2024"
