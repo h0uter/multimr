@@ -1,5 +1,8 @@
 use color_eyre::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use ratatui::layout::{Constraint, Direction, Layout};
+use ratatui::style::{Color, Style};
+use ratatui::widgets::{ListItem, Paragraph};
 use ratatui::{
     DefaultTerminal, Frame,
     style::Stylize,
@@ -51,22 +54,22 @@ pub struct App {
     /// Currently highlighted reviewer index
     reviewer_index: usize,
     labels: Vec<(String, String)>, // (key, value)
-    selected_label: Option<usize>,
+    selected_label: usize,
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
 enum InputFocus {
     #[default]
+    Label,
     Title,
     Description,
-    Label,
 }
 
 impl App {
     /// Construct a new instance of [`App`].
     pub fn new() -> Self {
         let mut app = Self {
-            screen: Screen::RepoSelection,
+            selected_label: 0,
             ..Default::default()
         };
         // Populate dirs with all directories in the current working directory
@@ -105,11 +108,6 @@ impl App {
     }
 
     /// Renders the user interface.
-    ///
-    /// This is where you add new widgets. See the following resources for more information:
-    ///
-    /// - <https://docs.rs/ratatui/latest/ratatui/widgets/index.html>
-    /// - <https://github.com/ratatui/ratatui/tree/main/ratatui-widgets/examples>
     fn render(&mut self, frame: &mut Frame) {
         match self.screen {
             Screen::RepoSelection => self.render_selection(frame),
@@ -120,9 +118,6 @@ impl App {
     }
 
     fn render_selection(&mut self, frame: &mut Frame) {
-        use ratatui::layout::{Constraint, Direction, Layout};
-        use ratatui::style::{Color, Style};
-        use ratatui::widgets::{ListItem, Paragraph};
         let title = Line::from("Mutli MR").bold().blue().centered();
         let items: Vec<ListItem> = self
             .dirs
@@ -199,23 +194,18 @@ impl App {
             .iter()
             .enumerate()
             .map(|(i, (k, v))| {
-                let marker = if Some(i) == self.selected_label {
+                let marker = if i == self.selected_label {
                     "(x)"
                 } else {
                     "( )"
                 };
                 let line = format!("{} {}: {}", marker, k, v);
                 let mut item = ListItem::new(line);
-                if self.input_focus == InputFocus::Label && Some(i) == self.selected_label {
+                if self.input_focus == InputFocus::Label && i == self.selected_label {
                     item = item.style(Style::default().fg(Color::Yellow).bg(Color::Blue));
-                } else if Some(i) == self.selected_label {
+                } else if i == self.selected_label {
                     item = item.style(Style::default().fg(Color::Yellow));
-                } else if self.input_focus == InputFocus::Label
-                    && self.selected_label.is_none()
-                    && i == 0
-                {
-                    item = item.style(Style::default().bg(Color::Blue));
-                }
+                } 
                 item
             })
             .collect();
@@ -415,31 +405,25 @@ impl App {
             },
             KeyCode::Down => {
                 if self.input_focus == InputFocus::Label && !self.labels.is_empty() {
-                    let idx = self.selected_label.unwrap_or(0);
-                    self.selected_label = Some((idx + 1) % self.labels.len());
+                    let idx = self.selected_label;
+                    self.selected_label = (idx + 1) % self.labels.len();
                 }
             }
             KeyCode::Up => {
                 if self.input_focus == InputFocus::Label && !self.labels.is_empty() {
-                    let idx = self.selected_label.unwrap_or(0);
-                    self.selected_label = Some(if idx == 0 {
+                    let idx = self.selected_label;
+                    self.selected_label = if idx == 0 {
                         self.labels.len() - 1
                     } else {
                         idx - 1
-                    });
+                    };
                 }
             }
             KeyCode::Enter => {
                 if self.input_focus == InputFocus::Label {
-                    if self.selected_label.is_none() && !self.labels.is_empty() {
-                        self.selected_label = Some(0);
-                    }
-                    if self.selected_label.is_some() {
-                        self.screen = Screen::SelectReviewers;
-                    }
-                } else if (self.input_focus == InputFocus::Description
-                    || self.input_focus == InputFocus::Title)
-                    && self.selected_label.is_some()
+                    self.screen = Screen::SelectReviewers;
+                } else if self.input_focus == InputFocus::Description
+                    || self.input_focus == InputFocus::Title
                 {
                     self.screen = Screen::SelectReviewers;
                 }
@@ -544,11 +528,13 @@ impl App {
 fn load_reviewers_and_labels_from_toml() -> (Vec<String>, Vec<(String, String)>) {
     let path = "multimr.toml";
     let content = std::fs::read_to_string(path).unwrap_or_default();
+
     #[derive(Deserialize)]
     struct ConfigToml {
         reviewers: Option<Vec<String>>,
         labels: Option<std::collections::BTreeMap<String, String>>,
     }
+
     let parsed: ConfigToml = toml::from_str(&content).unwrap_or(ConfigToml {
         reviewers: None,
         labels: None,
