@@ -21,16 +21,15 @@ fn main() -> color_eyre::Result<()> {
 
 #[derive(Debug)]
 enum Screen {
-    Selection,
+    RepoSelection,
     CreateMR,
     SelectReviewers,
     Overview,
-    SelectLabel,
 }
 
 impl Default for Screen {
     fn default() -> Self {
-        Screen::Selection
+        Screen::RepoSelection
     }
 }
 
@@ -65,13 +64,14 @@ enum InputFocus {
     #[default]
     Title,
     Description,
+    Label,
 }
 
 impl App {
     /// Construct a new instance of [`App`].
     pub fn new() -> Self {
         let mut app = Self {
-            screen: Screen::Selection,
+            screen: Screen::RepoSelection,
             ..Default::default()
         };
         // Populate dirs with all directories in the current working directory
@@ -117,9 +117,8 @@ impl App {
     /// - <https://github.com/ratatui/ratatui/tree/main/ratatui-widgets/examples>
     fn render(&mut self, frame: &mut Frame) {
         match self.screen {
-            Screen::Selection => self.render_selection(frame),
+            Screen::RepoSelection => self.render_selection(frame),
             Screen::CreateMR => self.render_create_mr(frame),
-            Screen::SelectLabel => self.render_select_label(frame),
             Screen::SelectReviewers => self.render_select_reviewers(frame),
             Screen::Overview => self.render_overview(frame),
         }
@@ -168,7 +167,7 @@ impl App {
     fn render_create_mr(&mut self, frame: &mut Frame) {
         use ratatui::layout::{Constraint, Direction, Layout};
         use ratatui::style::{Color, Style};
-        use ratatui::widgets::Paragraph;
+        use ratatui::widgets::{List, ListItem, Paragraph, Block};
         let selected_dirs: Vec<&String> = self
             .selected
             .iter()
@@ -184,21 +183,35 @@ impl App {
                 .collect::<Vec<_>>()
                 .join("\n")
         };
-        let title =
-            Paragraph::new("Create Merge Request").style(Style::default().fg(Color::Blue).bold());
+        let title = Paragraph::new("Create Merge Request").style(Style::default().fg(Color::Blue).bold());
         let dirs = Paragraph::new(format!("Repositories:\n{}", dirs_text));
         let title_input = if self.input_focus == InputFocus::Title {
-            Paragraph::new(format!("Title: {}", self.mr_title))
-                .style(Style::default().bg(Color::Blue).fg(Color::White))
+            Paragraph::new(format!("Title: {}", self.mr_title)).style(Style::default().bg(Color::Blue).fg(Color::White))
         } else {
             Paragraph::new(format!("Title: {}", self.mr_title))
         };
         let desc_input = if self.input_focus == InputFocus::Description {
-            Paragraph::new(format!("Description: {}", self.mr_description))
-                .style(Style::default().bg(Color::Blue).fg(Color::White))
+            Paragraph::new(format!("Description: {}", self.mr_description)).style(Style::default().bg(Color::Blue).fg(Color::White))
         } else {
             Paragraph::new(format!("Description: {}", self.mr_description))
         };
+        // Label selection box
+        let label_items: Vec<ListItem> = self.labels.iter().enumerate().map(|(i, (k, v))| {
+            let marker = if Some(i) == self.selected_label { "(x)" } else { "( )" };
+            let line = format!("{} {}: {}", marker, k, v);
+            let mut item = ListItem::new(line);
+            if self.input_focus == InputFocus::Label && Some(i) == self.selected_label {
+                item = item.style(Style::default().fg(Color::Yellow).bg(Color::Blue));
+            } else if Some(i) == self.selected_label {
+                item = item.style(Style::default().fg(Color::Yellow));
+            } else if self.input_focus == InputFocus::Label && self.selected_label.is_none() && i == 0 {
+                item = item.style(Style::default().bg(Color::Blue));
+            }
+            item
+        }).collect();
+        let label_list = List::new(label_items)
+            .block(Block::bordered().title("Label"));
+        // Layout: title, dirs, title input, desc input, label select, help
         let layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
@@ -206,17 +219,17 @@ impl App {
                 Constraint::Min(3),
                 Constraint::Length(3),
                 Constraint::Length(3),
-                Constraint::Length(1), // for key help bar
+                Constraint::Length(5), // label box
+                Constraint::Length(1), // help
             ])
             .split(frame.area());
         frame.render_widget(title, layout[0]);
         frame.render_widget(dirs, layout[1]);
         frame.render_widget(title_input, layout[2]);
         frame.render_widget(desc_input, layout[3]);
-        let help = Paragraph::new("Tab: Switch field  Type: Input  Backspace: Delete  Esc: Back")
-            .centered()
-            .style(Style::default().fg(Color::DarkGray));
-        frame.render_widget(help, layout[4]);
+        frame.render_widget(label_list, layout[4]);
+        let help = Paragraph::new("Tab: Switch field  ↑/↓: Label  Space/Enter: Select Label  Type: Input  Backspace: Delete  Esc: Back").centered().style(Style::default().fg(Color::DarkGray));
+        frame.render_widget(help, layout[5]);
     }
 
     fn render_select_reviewers(&mut self, frame: &mut Frame) {
@@ -309,47 +322,6 @@ impl App {
         frame.render_widget(help, layout[1]);
     }
 
-    fn render_select_label(&mut self, frame: &mut Frame) {
-        use ratatui::layout::{Constraint, Direction, Layout};
-        use ratatui::style::{Color, Style};
-        use ratatui::widgets::{ListItem, Paragraph};
-        let title = Line::from("Select Label").bold().blue().centered();
-        let items: Vec<ListItem> = self
-            .labels
-            .iter()
-            .enumerate()
-            .map(|(i, (k, v))| {
-                let marker = if Some(i) == self.selected_label {
-                    "(x)"
-                } else {
-                    "( )"
-                };
-                let line = format!("{} {}: {}", marker, k, v);
-                let mut item = ListItem::new(line);
-                if Some(i) == self.selected_label {
-                    item = item.style(Style::default().fg(Color::Yellow).bg(Color::Blue));
-                }
-                item
-            })
-            .collect();
-        let list = List::new(items).block(Block::bordered().title(title));
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Min(1),
-                Constraint::Length(1),
-                Constraint::Length(1),
-            ])
-            .split(frame.area());
-        frame.render_widget(list, chunks[0]);
-        let desc = Paragraph::new("Select a label for the MR").centered();
-        frame.render_widget(desc, chunks[1]);
-        let help = Paragraph::new("↑/↓: Move  Enter/Space: Select  Esc: Back")
-            .centered()
-            .style(Style::default().fg(Color::DarkGray));
-        frame.render_widget(help, chunks[2]);
-    }
-
     /// Reads the crossterm events and updates the state of [`App`].
     ///
     /// If your application needs to perform work in between handling events, you can use the
@@ -368,11 +340,10 @@ impl App {
     /// Handles the key events and updates the state of [`App`].
     fn on_key_event(&mut self, key: KeyEvent) {
         match self.screen {
-            Screen::Selection => self.on_key_event_selection(key),
+            Screen::RepoSelection => self.on_key_event_selection(key),
             Screen::CreateMR => self.on_key_event_create_mr(key),
             Screen::SelectReviewers => self.on_key_event_select_reviewers(key),
             Screen::Overview => self.on_key_event_overview(key),
-            Screen::SelectLabel => self.on_key_event_select_label(key),
         }
     }
 
@@ -415,58 +386,53 @@ impl App {
             KeyCode::Tab => {
                 self.input_focus = match self.input_focus {
                     InputFocus::Title => InputFocus::Description,
-                    InputFocus::Description => InputFocus::Title,
+                    InputFocus::Description => InputFocus::Label,
+                    InputFocus::Label => InputFocus::Title,
                 };
             }
             KeyCode::Backspace => match self.input_focus {
-                InputFocus::Title => {
-                    self.mr_title.pop();
-                }
-                InputFocus::Description => {
-                    self.mr_description.pop();
-                }
+                InputFocus::Title => { self.mr_title.pop(); },
+                InputFocus::Description => { self.mr_description.pop(); },
+                InputFocus::Label => {},
             },
             KeyCode::Char(c) => match self.input_focus {
                 InputFocus::Title => self.mr_title.push(c),
                 InputFocus::Description => self.mr_description.push(c),
+                InputFocus::Label => {},
             },
-            KeyCode::Esc => {
-                self.screen = Screen::Selection;
-            }
-            KeyCode::Enter => {
-                self.screen = Screen::SelectLabel;
-            }
-            _ => {}
-        }
-    }
-
-    fn on_key_event_select_label(&mut self, key: KeyEvent) {
-        match key.code {
             KeyCode::Down => {
-                if !self.labels.is_empty() {
+                if self.input_focus == InputFocus::Label && !self.labels.is_empty() {
                     let idx = self.selected_label.unwrap_or(0);
                     self.selected_label = Some((idx + 1) % self.labels.len());
                 }
             }
             KeyCode::Up => {
-                if !self.labels.is_empty() {
+                if self.input_focus == InputFocus::Label && !self.labels.is_empty() {
                     let idx = self.selected_label.unwrap_or(0);
-                    self.selected_label = Some(if idx == 0 {
-                        self.labels.len() - 1
-                    } else {
-                        idx - 1
-                    });
+                    self.selected_label = Some(if idx == 0 { self.labels.len() - 1 } else { idx - 1 });
                 }
             }
-            KeyCode::Enter | KeyCode::Char(' ') => {
-                // Mutually exclusive: just keep the current selection
+            KeyCode::Enter => {
+                if self.input_focus == InputFocus::Label {
+                    if self.selected_label.is_none() && !self.labels.is_empty() {
+                        self.selected_label = Some(0);
+                    }
+                    if self.selected_label.is_some() {
+                        self.screen = Screen::SelectReviewers;
+                    }
+                } else if self.input_focus == InputFocus::Description || self.input_focus == InputFocus::Title {
+                    if self.selected_label.is_some() {
+                        self.screen = Screen::SelectReviewers;
+                    }
+                }
+            }
+            KeyCode::Char(' ') if self.input_focus == InputFocus::Label => {
                 if self.selected_label.is_none() && !self.labels.is_empty() {
                     self.selected_label = Some(0);
                 }
-                self.screen = Screen::SelectReviewers;
             }
             KeyCode::Esc => {
-                self.screen = Screen::CreateMR;
+                self.screen = Screen::RepoSelection;
             }
             _ => {}
         }
@@ -521,7 +487,7 @@ impl App {
                     .copied()
                     .filter_map(|i| self.reviewers.get(i))
                     .collect();
-                let data = format!(
+                let _data = format!(
                     "Repositories: {}\nTitle: {}\nDescription: {}\nReviewers: {}",
                     selected_dirs
                         .iter()
