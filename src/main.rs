@@ -24,6 +24,7 @@ enum Screen {
     Selection,
     CreateMR,
     SelectReviewers,
+    Overview,
 }
 
 impl Default for Screen {
@@ -114,13 +115,14 @@ impl App {
             Screen::Selection => self.render_selection(frame),
             Screen::CreateMR => self.render_create_mr(frame),
             Screen::SelectReviewers => self.render_select_reviewers(frame),
+            Screen::Overview => self.render_overview(frame),
         }
     }
 
     fn render_selection(&mut self, frame: &mut Frame) {
+        use ratatui::layout::{Constraint, Direction, Layout};
         use ratatui::style::{Color, Style};
         use ratatui::widgets::{ListItem, Paragraph};
-        use ratatui::layout::{Layout, Constraint, Direction};
         let title = Line::from("Mutli MR").bold().blue().centered();
         let items: Vec<ListItem> = self
             .dirs
@@ -151,29 +153,43 @@ impl App {
         frame.render_widget(list, chunks[0]);
         let desc = Paragraph::new("Select repositories to create MR for").centered();
         frame.render_widget(desc, chunks[1]);
-        let help = Paragraph::new("↑/↓: Move  Space: Select  Enter: Next  q/Esc/Ctrl+C: Quit").centered().style(Style::default().fg(Color::DarkGray));
+        let help = Paragraph::new("↑/↓: Move  Space: Select  Enter: Next  q/Esc/Ctrl+C: Quit")
+            .centered()
+            .style(Style::default().fg(Color::DarkGray));
         frame.render_widget(help, chunks[2]);
     }
 
     fn render_create_mr(&mut self, frame: &mut Frame) {
+        use ratatui::layout::{Constraint, Direction, Layout};
+        use ratatui::style::{Color, Style};
         use ratatui::widgets::Paragraph;
-        use ratatui::style::{Style, Color};
-        use ratatui::layout::{Layout, Constraint, Direction};
-        let selected_dirs: Vec<&String> = self.selected.iter().copied().filter_map(|i| self.dirs.get(i)).collect();
+        let selected_dirs: Vec<&String> = self
+            .selected
+            .iter()
+            .copied()
+            .filter_map(|i| self.dirs.get(i))
+            .collect();
         let dirs_text = if selected_dirs.is_empty() {
             "No repositories selected".to_string()
         } else {
-            selected_dirs.iter().map(|s| s.as_str()).collect::<Vec<_>>().join("\n")
+            selected_dirs
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .join("\n")
         };
-        let title = Paragraph::new("Create Merge Request").style(Style::default().fg(Color::Blue).bold());
+        let title =
+            Paragraph::new("Create Merge Request").style(Style::default().fg(Color::Blue).bold());
         let dirs = Paragraph::new(format!("Repositories:\n{}", dirs_text));
         let title_input = if self.input_focus == InputFocus::Title {
-            Paragraph::new(format!("Title: {}", self.mr_title)).style(Style::default().bg(Color::Blue).fg(Color::White))
+            Paragraph::new(format!("Title: {}", self.mr_title))
+                .style(Style::default().bg(Color::Blue).fg(Color::White))
         } else {
             Paragraph::new(format!("Title: {}", self.mr_title))
         };
         let desc_input = if self.input_focus == InputFocus::Description {
-            Paragraph::new(format!("Description: {}", self.mr_description)).style(Style::default().bg(Color::Blue).fg(Color::White))
+            Paragraph::new(format!("Description: {}", self.mr_description))
+                .style(Style::default().bg(Color::Blue).fg(Color::White))
         } else {
             Paragraph::new(format!("Description: {}", self.mr_description))
         };
@@ -191,14 +207,16 @@ impl App {
         frame.render_widget(dirs, layout[1]);
         frame.render_widget(title_input, layout[2]);
         frame.render_widget(desc_input, layout[3]);
-        let help = Paragraph::new("Tab: Switch field  Type: Input  Backspace: Delete  Esc: Back").centered().style(Style::default().fg(Color::DarkGray));
+        let help = Paragraph::new("Tab: Switch field  Type: Input  Backspace: Delete  Esc: Back")
+            .centered()
+            .style(Style::default().fg(Color::DarkGray));
         frame.render_widget(help, layout[4]);
     }
 
     fn render_select_reviewers(&mut self, frame: &mut Frame) {
+        use ratatui::layout::{Constraint, Direction, Layout};
         use ratatui::style::{Color, Style};
         use ratatui::widgets::{ListItem, Paragraph};
-        use ratatui::layout::{Layout, Constraint, Direction};
         let title = Line::from("Select Reviewers").bold().blue().centered();
         let items: Vec<ListItem> = self
             .reviewers
@@ -229,8 +247,60 @@ impl App {
         frame.render_widget(list, chunks[0]);
         let desc = Paragraph::new("Select reviewers for the MR").centered();
         frame.render_widget(desc, chunks[1]);
-        let help = Paragraph::new("↑/↓: Move  Space: Select  Enter: Finish  Esc: Back").centered().style(Style::default().fg(Color::DarkGray));
+        let help = Paragraph::new("↑/↓: Move  Space: Select  Enter: Finish  Esc: Back")
+            .centered()
+            .style(Style::default().fg(Color::DarkGray));
         frame.render_widget(help, chunks[2]);
+    }
+
+    fn render_overview(&mut self, frame: &mut Frame) {
+        use ratatui::layout::{Constraint, Direction, Layout};
+        use ratatui::style::{Color, Style};
+        use ratatui::widgets::Paragraph;
+        let selected_dirs: Vec<&String> = self
+            .selected
+            .iter()
+            .copied()
+            .filter_map(|i| self.dirs.get(i))
+            .collect();
+        let selected_reviewers: Vec<&String> = self
+            .selected_reviewers
+            .iter()
+            .copied()
+            .filter_map(|i| self.reviewers.get(i))
+            .collect();
+        let dirs_text = if selected_dirs.is_empty() {
+            "No repositories selected".to_string()
+        } else {
+            selected_dirs
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        };
+        let reviewers_text = if selected_reviewers.is_empty() {
+            "No reviewers selected".to_string()
+        } else {
+            selected_reviewers
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        };
+        let overview = format!(
+            "Overview\n\nRepositories: {}\nTitle: {}\nDescription: {}\nReviewers: {}\n\nPress 'y' to confirm, 'n' to go back.",
+            dirs_text, self.mr_title, self.mr_description, reviewers_text
+        );
+        let layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Min(1), Constraint::Length(1)])
+            .split(frame.area());
+        let para = Paragraph::new(overview);
+        frame.render_widget(para, layout[0]);
+        let help = Paragraph::new("y: Confirm  n: Back")
+            .centered()
+            .style(Style::default().fg(Color::DarkGray));
+        frame.render_widget(help, layout[1]);
     }
 
     /// Reads the crossterm events and updates the state of [`App`].
@@ -254,6 +324,7 @@ impl App {
             Screen::Selection => self.on_key_event_selection(key),
             Screen::CreateMR => self.on_key_event_create_mr(key),
             Screen::SelectReviewers => self.on_key_event_select_reviewers(key),
+            Screen::Overview => self.on_key_event_overview(key),
         }
     }
 
@@ -299,18 +370,18 @@ impl App {
                     InputFocus::Description => InputFocus::Title,
                 };
             }
-            KeyCode::Backspace => {
-                match self.input_focus {
-                    InputFocus::Title => { self.mr_title.pop(); },
-                    InputFocus::Description => { self.mr_description.pop(); },
+            KeyCode::Backspace => match self.input_focus {
+                InputFocus::Title => {
+                    self.mr_title.pop();
                 }
-            }
-            KeyCode::Char(c) => {
-                match self.input_focus {
-                    InputFocus::Title => self.mr_title.push(c),
-                    InputFocus::Description => self.mr_description.push(c),
+                InputFocus::Description => {
+                    self.mr_description.pop();
                 }
-            }
+            },
+            KeyCode::Char(c) => match self.input_focus {
+                InputFocus::Title => self.mr_title.push(c),
+                InputFocus::Description => self.mr_description.push(c),
+            },
             KeyCode::Esc => {
                 self.screen = Screen::Selection;
             }
@@ -345,11 +416,57 @@ impl App {
                 }
             }
             KeyCode::Enter => {
-                // Finish, could add next stage or summary here
-                self.screen = Screen::Selection;
+                self.screen = Screen::Overview;
             }
             KeyCode::Esc => {
                 self.screen = Screen::CreateMR;
+            }
+            _ => {}
+        }
+    }
+
+    fn on_key_event_overview(&mut self, key: KeyEvent) {
+        match key.code {
+            KeyCode::Char('y') => {
+                // Aggregate data as string
+                let selected_dirs: Vec<&String> = self
+                    .selected
+                    .iter()
+                    .copied()
+                    .filter_map(|i| self.dirs.get(i))
+                    .collect();
+                let selected_reviewers: Vec<&String> = self
+                    .selected_reviewers
+                    .iter()
+                    .copied()
+                    .filter_map(|i| self.reviewers.get(i))
+                    .collect();
+                let data = format!(
+                    "Repositories: {}\nTitle: {}\nDescription: {}\nReviewers: {}",
+                    selected_dirs
+                        .iter()
+                        .map(|s| s.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                    self.mr_title,
+                    self.mr_description,
+                    selected_reviewers
+                        .iter()
+                        .map(|s| s.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                );
+                // Run placeholder shell command and exit
+                std::process::Command::new("sh")
+                    .arg("-c")
+                    // .arg(format!("echo '{}'", data.replace("'", "''")))
+                    .arg("terminal-notifier -sound default -message 'Merge Request Created'")
+                    .status()
+                    .ok();
+                self.quit();
+            }
+            KeyCode::Char('n') => {
+                self.screen = Screen::SelectReviewers;
             }
             _ => {}
         }
