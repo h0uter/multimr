@@ -21,15 +21,16 @@ fn main() -> color_eyre::Result<()> {
 
 #[derive(Debug)]
 enum Screen {
-    SelectRepos,
+    Selection,
     CreateMR,
     SelectReviewers,
-    FinalOverview,
+    Overview,
+    SelectLabel,
 }
 
 impl Default for Screen {
     fn default() -> Self {
-        Screen::SelectRepos
+        Screen::Selection
     }
 }
 
@@ -55,6 +56,8 @@ pub struct App {
     selected_reviewers: HashSet<usize>,
     /// Currently highlighted reviewer index
     reviewer_index: usize,
+    labels: Vec<(String, String)>, // (key, value)
+    selected_label: Option<usize>,
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -68,7 +71,7 @@ impl App {
     /// Construct a new instance of [`App`].
     pub fn new() -> Self {
         let mut app = Self {
-            screen: Screen::SelectRepos,
+            screen: Screen::Selection,
             ..Default::default()
         };
         // Populate dirs with all directories in the current working directory
@@ -90,7 +93,9 @@ impl App {
         app.selected_index = 0;
         app.selected = HashSet::new();
         // Load reviewers from reviewers.toml
-        app.reviewers = load_reviewers_from_toml();
+        let (reviewers, labels) = load_reviewers_and_labels_from_toml();
+        app.reviewers = reviewers;
+        app.labels = labels;
         app
     }
 
@@ -112,10 +117,11 @@ impl App {
     /// - <https://github.com/ratatui/ratatui/tree/main/ratatui-widgets/examples>
     fn render(&mut self, frame: &mut Frame) {
         match self.screen {
-            Screen::SelectRepos => self.render_selection(frame),
+            Screen::Selection => self.render_selection(frame),
             Screen::CreateMR => self.render_create_mr(frame),
+            Screen::SelectLabel => self.render_select_label(frame),
             Screen::SelectReviewers => self.render_select_reviewers(frame),
-            Screen::FinalOverview => self.render_overview(frame),
+            Screen::Overview => self.render_overview(frame),
         }
     }
 
@@ -303,6 +309,47 @@ impl App {
         frame.render_widget(help, layout[1]);
     }
 
+    fn render_select_label(&mut self, frame: &mut Frame) {
+        use ratatui::layout::{Constraint, Direction, Layout};
+        use ratatui::style::{Color, Style};
+        use ratatui::widgets::{ListItem, Paragraph};
+        let title = Line::from("Select Label").bold().blue().centered();
+        let items: Vec<ListItem> = self
+            .labels
+            .iter()
+            .enumerate()
+            .map(|(i, (k, v))| {
+                let marker = if Some(i) == self.selected_label {
+                    "(x)"
+                } else {
+                    "( )"
+                };
+                let line = format!("{} {}: {}", marker, k, v);
+                let mut item = ListItem::new(line);
+                if Some(i) == self.selected_label {
+                    item = item.style(Style::default().fg(Color::Yellow).bg(Color::Blue));
+                }
+                item
+            })
+            .collect();
+        let list = List::new(items).block(Block::bordered().title(title));
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Min(1),
+                Constraint::Length(1),
+                Constraint::Length(1),
+            ])
+            .split(frame.area());
+        frame.render_widget(list, chunks[0]);
+        let desc = Paragraph::new("Select a label for the MR").centered();
+        frame.render_widget(desc, chunks[1]);
+        let help = Paragraph::new("↑/↓: Move  Enter/Space: Select  Esc: Back")
+            .centered()
+            .style(Style::default().fg(Color::DarkGray));
+        frame.render_widget(help, chunks[2]);
+    }
+
     /// Reads the crossterm events and updates the state of [`App`].
     ///
     /// If your application needs to perform work in between handling events, you can use the
@@ -321,10 +368,11 @@ impl App {
     /// Handles the key events and updates the state of [`App`].
     fn on_key_event(&mut self, key: KeyEvent) {
         match self.screen {
-            Screen::SelectRepos => self.on_key_event_selection(key),
+            Screen::Selection => self.on_key_event_selection(key),
             Screen::CreateMR => self.on_key_event_create_mr(key),
             Screen::SelectReviewers => self.on_key_event_select_reviewers(key),
-            Screen::FinalOverview => self.on_key_event_overview(key),
+            Screen::Overview => self.on_key_event_overview(key),
+            Screen::SelectLabel => self.on_key_event_select_label(key),
         }
     }
 
@@ -383,10 +431,42 @@ impl App {
                 InputFocus::Description => self.mr_description.push(c),
             },
             KeyCode::Esc => {
-                self.screen = Screen::SelectRepos;
+                self.screen = Screen::Selection;
             }
             KeyCode::Enter => {
+                self.screen = Screen::SelectLabel;
+            }
+            _ => {}
+        }
+    }
+
+    fn on_key_event_select_label(&mut self, key: KeyEvent) {
+        match key.code {
+            KeyCode::Down => {
+                if !self.labels.is_empty() {
+                    let idx = self.selected_label.unwrap_or(0);
+                    self.selected_label = Some((idx + 1) % self.labels.len());
+                }
+            }
+            KeyCode::Up => {
+                if !self.labels.is_empty() {
+                    let idx = self.selected_label.unwrap_or(0);
+                    self.selected_label = Some(if idx == 0 {
+                        self.labels.len() - 1
+                    } else {
+                        idx - 1
+                    });
+                }
+            }
+            KeyCode::Enter | KeyCode::Char(' ') => {
+                // Mutually exclusive: just keep the current selection
+                if self.selected_label.is_none() && !self.labels.is_empty() {
+                    self.selected_label = Some(0);
+                }
                 self.screen = Screen::SelectReviewers;
+            }
+            KeyCode::Esc => {
+                self.screen = Screen::CreateMR;
             }
             _ => {}
         }
@@ -416,7 +496,7 @@ impl App {
                 }
             }
             KeyCode::Enter => {
-                self.screen = Screen::FinalOverview;
+                self.screen = Screen::Overview;
             }
             KeyCode::Esc => {
                 self.screen = Screen::CreateMR;
@@ -482,20 +562,22 @@ impl App {
 ///
 /// This function simulates loading reviewers from a file. In a real application, you would
 /// read from an actual TOML file and parse the contents.
-fn load_reviewers_from_toml() -> Vec<String> {
-    // Read reviewers.toml from the current directory
+fn load_reviewers_and_labels_from_toml() -> (Vec<String>, Vec<(String, String)>) {
     let path = "multimr.toml";
     let content = std::fs::read_to_string(path).unwrap_or_default();
-    parse_reviewers_toml(&content)
-}
-
-fn parse_reviewers_toml(content: &str) -> Vec<String> {
     #[derive(Deserialize)]
-    struct SettingsToml {
+    struct ConfigToml {
         reviewers: Option<Vec<String>>,
+        labels: Option<std::collections::BTreeMap<String, String>>,
     }
-    toml::from_str::<SettingsToml>(content)
-        .ok()
-        .and_then(|r| r.reviewers)
-        .unwrap_or_default()
+    let parsed: ConfigToml = toml::from_str(&content).unwrap_or(ConfigToml {
+        reviewers: None,
+        labels: None,
+    });
+    let reviewers = parsed.reviewers.unwrap_or_default();
+    let labels = parsed
+        .labels
+        .map(|m| m.into_iter().collect())
+        .unwrap_or_default();
+    (reviewers, labels)
 }
