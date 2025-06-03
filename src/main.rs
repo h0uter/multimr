@@ -21,15 +21,15 @@ fn main() -> color_eyre::Result<()> {
 
 #[derive(Debug)]
 enum Screen {
-    Selection,
+    SelectRepos,
     CreateMR,
     SelectReviewers,
-    Overview,
+    FinalOverview,
 }
 
 impl Default for Screen {
     fn default() -> Self {
-        Screen::Selection
+        Screen::SelectRepos
     }
 }
 
@@ -68,7 +68,7 @@ impl App {
     /// Construct a new instance of [`App`].
     pub fn new() -> Self {
         let mut app = Self {
-            screen: Screen::Selection,
+            screen: Screen::SelectRepos,
             ..Default::default()
         };
         // Populate dirs with all directories in the current working directory
@@ -112,10 +112,10 @@ impl App {
     /// - <https://github.com/ratatui/ratatui/tree/main/ratatui-widgets/examples>
     fn render(&mut self, frame: &mut Frame) {
         match self.screen {
-            Screen::Selection => self.render_selection(frame),
+            Screen::SelectRepos => self.render_selection(frame),
             Screen::CreateMR => self.render_create_mr(frame),
             Screen::SelectReviewers => self.render_select_reviewers(frame),
-            Screen::Overview => self.render_overview(frame),
+            Screen::FinalOverview => self.render_overview(frame),
         }
     }
 
@@ -321,10 +321,10 @@ impl App {
     /// Handles the key events and updates the state of [`App`].
     fn on_key_event(&mut self, key: KeyEvent) {
         match self.screen {
-            Screen::Selection => self.on_key_event_selection(key),
+            Screen::SelectRepos => self.on_key_event_selection(key),
             Screen::CreateMR => self.on_key_event_create_mr(key),
             Screen::SelectReviewers => self.on_key_event_select_reviewers(key),
-            Screen::Overview => self.on_key_event_overview(key),
+            Screen::FinalOverview => self.on_key_event_overview(key),
         }
     }
 
@@ -383,7 +383,7 @@ impl App {
                 InputFocus::Description => self.mr_description.push(c),
             },
             KeyCode::Esc => {
-                self.screen = Screen::Selection;
+                self.screen = Screen::SelectRepos;
             }
             KeyCode::Enter => {
                 self.screen = Screen::SelectReviewers;
@@ -416,7 +416,7 @@ impl App {
                 }
             }
             KeyCode::Enter => {
-                self.screen = Screen::Overview;
+                self.screen = Screen::FinalOverview;
             }
             KeyCode::Esc => {
                 self.screen = Screen::CreateMR;
