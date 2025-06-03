@@ -6,8 +6,9 @@ use ratatui::{
     text::Line,
     widgets::{Block, List},
 };
-use std::fs;
+use std::collections::HashSet;
 use std::env;
+use std::fs;
 
 fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
@@ -24,6 +25,10 @@ pub struct App {
     running: bool,
     /// List of directories in the current working directory.
     dirs: Vec<String>,
+    /// Indices of selected directories
+    selected: HashSet<usize>,
+    /// Currently highlighted directory index
+    selected_index: usize,
 }
 
 impl App {
@@ -46,6 +51,8 @@ impl App {
                     .collect();
             }
         }
+        app.selected_index = 0;
+        app.selected = HashSet::new();
         app
     }
 
@@ -66,11 +73,27 @@ impl App {
     /// - <https://docs.rs/ratatui/latest/ratatui/widgets/index.html>
     /// - <https://github.com/ratatui/ratatui/tree/main/ratatui-widgets/examples>
     fn render(&mut self, frame: &mut Frame) {
+        use ratatui::style::{Color, Style};
         use ratatui::widgets::ListItem;
         let title = Line::from("Mutli MR").bold().blue().centered();
-        let items: Vec<ListItem> = self.dirs.iter().map(|d| ListItem::new(d.clone())).collect();
-        let list = List::new(items)
-            .block(Block::bordered().title(title));
+        let items: Vec<ListItem> = self
+            .dirs
+            .iter()
+            .enumerate()
+            .map(|(i, d)| {
+                let line = if self.selected.contains(&i) {
+                    format!("[x] {}", d)
+                } else {
+                    format!("[ ] {}", d)
+                };
+                let mut item = ListItem::new(line);
+                if i == self.selected_index {
+                    item = item.style(Style::default().fg(Color::Yellow).bg(Color::Blue));
+                }
+                item
+            })
+            .collect();
+        let list = List::new(items).block(Block::bordered().title(title));
         frame.render_widget(list, frame.area());
     }
 
@@ -94,7 +117,27 @@ impl App {
         match (key.modifiers, key.code) {
             (_, KeyCode::Esc | KeyCode::Char('q'))
             | (KeyModifiers::CONTROL, KeyCode::Char('c') | KeyCode::Char('C')) => self.quit(),
-            // Add other key handlers here.
+            (_, KeyCode::Down) => {
+                if !self.dirs.is_empty() {
+                    self.selected_index = (self.selected_index + 1) % self.dirs.len();
+                }
+            }
+            (_, KeyCode::Up) => {
+                if !self.dirs.is_empty() {
+                    if self.selected_index == 0 {
+                        self.selected_index = self.dirs.len() - 1;
+                    } else {
+                        self.selected_index -= 1;
+                    }
+                }
+            }
+            (_, KeyCode::Char(' ')) => {
+                if self.selected.contains(&self.selected_index) {
+                    self.selected.remove(&self.selected_index);
+                } else {
+                    self.selected.insert(self.selected_index);
+                }
+            }
             _ => {}
         }
     }
