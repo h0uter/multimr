@@ -18,6 +18,18 @@ fn main() -> color_eyre::Result<()> {
     result
 }
 
+#[derive(Debug)]
+enum Screen {
+    Selection,
+    CreateMR,
+}
+
+impl Default for Screen {
+    fn default() -> Self {
+        Screen::Selection
+    }
+}
+
 /// The main application which holds the state and logic of the application.
 #[derive(Debug, Default)]
 pub struct App {
@@ -29,12 +41,27 @@ pub struct App {
     selected: HashSet<usize>,
     /// Currently highlighted directory index
     selected_index: usize,
+    screen: Screen,
+    /// For CreateMR screen
+    mr_title: String,
+    mr_description: String,
+    input_focus: InputFocus,
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+enum InputFocus {
+    #[default]
+    Title,
+    Description,
 }
 
 impl App {
     /// Construct a new instance of [`App`].
     pub fn new() -> Self {
-        let mut app = Self::default();
+        let mut app = Self {
+            screen: Screen::Selection,
+            ..Default::default()
+        };
         // Populate dirs with all directories in the current working directory
         if let Ok(cwd) = env::current_dir() {
             if let Ok(entries) = fs::read_dir(cwd) {
@@ -73,8 +100,16 @@ impl App {
     /// - <https://docs.rs/ratatui/latest/ratatui/widgets/index.html>
     /// - <https://github.com/ratatui/ratatui/tree/main/ratatui-widgets/examples>
     fn render(&mut self, frame: &mut Frame) {
+        match self.screen {
+            Screen::Selection => self.render_selection(frame),
+            Screen::CreateMR => self.render_create_mr(frame),
+        }
+    }
+
+    fn render_selection(&mut self, frame: &mut Frame) {
         use ratatui::style::{Color, Style};
         use ratatui::widgets::{ListItem, Paragraph};
+        use ratatui::layout::{Layout, Constraint, Direction};
         let title = Line::from("Mutli MR").bold().blue().centered();
         let items: Vec<ListItem> = self
             .dirs
@@ -94,9 +129,6 @@ impl App {
             })
             .collect();
         let list = List::new(items).block(Block::bordered().title(title));
-
-        // Layout: main area for list, bottom area for description
-        use ratatui::layout::{Layout, Constraint, Direction};
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
@@ -104,10 +136,46 @@ impl App {
                 Constraint::Length(2),
             ])
             .split(frame.area());
-
         frame.render_widget(list, chunks[0]);
         let desc = Paragraph::new("Select repositories to create MR for").centered();
         frame.render_widget(desc, chunks[1]);
+    }
+
+    fn render_create_mr(&mut self, frame: &mut Frame) {
+        use ratatui::widgets::Paragraph;
+        use ratatui::style::{Style, Color};
+        use ratatui::layout::{Layout, Constraint, Direction};
+        let selected_dirs: Vec<&String> = self.selected.iter().copied().filter_map(|i| self.dirs.get(i)).collect();
+        let dirs_text = if selected_dirs.is_empty() {
+            "No repositories selected".to_string()
+        } else {
+            selected_dirs.iter().map(|s| s.as_str()).collect::<Vec<_>>().join("\n")
+        };
+        let title = Paragraph::new("Create Merge Request").style(Style::default().fg(Color::Blue).bold());
+        let dirs = Paragraph::new(format!("Repositories:\n{}", dirs_text));
+        let title_input = if self.input_focus == InputFocus::Title {
+            Paragraph::new(format!("Title: {}", self.mr_title)).style(Style::default().bg(Color::Blue).fg(Color::White))
+        } else {
+            Paragraph::new(format!("Title: {}", self.mr_title))
+        };
+        let desc_input = if self.input_focus == InputFocus::Description {
+            Paragraph::new(format!("Description: {}", self.mr_description)).style(Style::default().bg(Color::Blue).fg(Color::White))
+        } else {
+            Paragraph::new(format!("Description: {}", self.mr_description))
+        };
+        let layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(1),
+                Constraint::Min(3),
+                Constraint::Length(3),
+                Constraint::Length(3),
+            ])
+            .split(frame.area());
+        frame.render_widget(title, layout[0]);
+        frame.render_widget(dirs, layout[1]);
+        frame.render_widget(title_input, layout[2]);
+        frame.render_widget(desc_input, layout[3]);
     }
 
     /// Reads the crossterm events and updates the state of [`App`].
@@ -127,6 +195,13 @@ impl App {
 
     /// Handles the key events and updates the state of [`App`].
     fn on_key_event(&mut self, key: KeyEvent) {
+        match self.screen {
+            Screen::Selection => self.on_key_event_selection(key),
+            Screen::CreateMR => self.on_key_event_create_mr(key),
+        }
+    }
+
+    fn on_key_event_selection(&mut self, key: KeyEvent) {
         match (key.modifiers, key.code) {
             (_, KeyCode::Esc | KeyCode::Char('q'))
             | (KeyModifiers::CONTROL, KeyCode::Char('c') | KeyCode::Char('C')) => self.quit(),
@@ -150,6 +225,38 @@ impl App {
                 } else {
                     self.selected.insert(self.selected_index);
                 }
+            }
+            (_, KeyCode::Enter) => {
+                if !self.selected.is_empty() {
+                    self.screen = Screen::CreateMR;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn on_key_event_create_mr(&mut self, key: KeyEvent) {
+        match key.code {
+            KeyCode::Tab => {
+                self.input_focus = match self.input_focus {
+                    InputFocus::Title => InputFocus::Description,
+                    InputFocus::Description => InputFocus::Title,
+                };
+            }
+            KeyCode::Backspace => {
+                match self.input_focus {
+                    InputFocus::Title => { self.mr_title.pop(); },
+                    InputFocus::Description => { self.mr_description.pop(); },
+                }
+            }
+            KeyCode::Char(c) => {
+                match self.input_focus {
+                    InputFocus::Title => self.mr_title.push(c),
+                    InputFocus::Description => self.mr_description.push(c),
+                }
+            }
+            KeyCode::Esc => {
+                self.screen = Screen::Selection;
             }
             _ => {}
         }
