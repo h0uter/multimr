@@ -491,10 +491,10 @@ fn load_reviewers_from_toml() -> Vec<String> {
 
 fn parse_reviewers_toml(content: &str) -> Vec<String> {
     #[derive(Deserialize)]
-    struct ReviewersToml {
+    struct SettingsToml {
         reviewers: Option<Vec<String>>,
     }
-    toml::from_str::<ReviewersToml>(content)
+    toml::from_str::<SettingsToml>(content)
         .ok()
         .and_then(|r| r.reviewers)
         .unwrap_or_default()
