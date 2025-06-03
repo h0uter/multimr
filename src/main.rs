@@ -426,11 +426,6 @@ impl App {
                     }
                 }
             }
-            KeyCode::Char(' ') if self.input_focus == InputFocus::Label => {
-                if self.selected_label.is_none() && !self.labels.is_empty() {
-                    self.selected_label = Some(0);
-                }
-            }
             KeyCode::Esc => {
                 self.screen = Screen::RepoSelection;
             }
