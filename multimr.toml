@@ -1,0 +1,5 @@
+reviewers = [
+    "alice",
+    "bob",
+    "carol"
+]

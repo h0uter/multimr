@@ -6,6 +6,7 @@ use ratatui::{
     text::Line,
     widgets::{Block, List},
 };
+use serde::Deserialize;
 use std::collections::HashSet;
 use std::env;
 use std::fs;
@@ -22,6 +23,7 @@ fn main() -> color_eyre::Result<()> {
 enum Screen {
     Selection,
     CreateMR,
+    SelectReviewers,
 }
 
 impl Default for Screen {
@@ -46,6 +48,12 @@ pub struct App {
     mr_title: String,
     mr_description: String,
     input_focus: InputFocus,
+    /// List of reviewers
+    reviewers: Vec<String>,
+    /// Indices of selected reviewers
+    selected_reviewers: HashSet<usize>,
+    /// Currently highlighted reviewer index
+    reviewer_index: usize,
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -80,6 +88,8 @@ impl App {
         }
         app.selected_index = 0;
         app.selected = HashSet::new();
+        // Load reviewers from reviewers.toml
+        app.reviewers = load_reviewers_from_toml();
         app
     }
 
@@ -103,6 +113,7 @@ impl App {
         match self.screen {
             Screen::Selection => self.render_selection(frame),
             Screen::CreateMR => self.render_create_mr(frame),
+            Screen::SelectReviewers => self.render_select_reviewers(frame),
         }
     }
 
@@ -184,6 +195,44 @@ impl App {
         frame.render_widget(help, layout[4]);
     }
 
+    fn render_select_reviewers(&mut self, frame: &mut Frame) {
+        use ratatui::style::{Color, Style};
+        use ratatui::widgets::{ListItem, Paragraph};
+        use ratatui::layout::{Layout, Constraint, Direction};
+        let title = Line::from("Select Reviewers").bold().blue().centered();
+        let items: Vec<ListItem> = self
+            .reviewers
+            .iter()
+            .enumerate()
+            .map(|(i, r)| {
+                let line = if self.selected_reviewers.contains(&i) {
+                    format!("[x] {}", r)
+                } else {
+                    format!("[ ] {}", r)
+                };
+                let mut item = ListItem::new(line);
+                if i == self.reviewer_index {
+                    item = item.style(Style::default().fg(Color::Yellow).bg(Color::Blue));
+                }
+                item
+            })
+            .collect();
+        let list = List::new(items).block(Block::bordered().title(title));
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Min(1),
+                Constraint::Length(1),
+                Constraint::Length(1),
+            ])
+            .split(frame.area());
+        frame.render_widget(list, chunks[0]);
+        let desc = Paragraph::new("Select reviewers for the MR").centered();
+        frame.render_widget(desc, chunks[1]);
+        let help = Paragraph::new("↑/↓: Move  Space: Select  Enter: Finish  Esc: Back").centered().style(Style::default().fg(Color::DarkGray));
+        frame.render_widget(help, chunks[2]);
+    }
+
     /// Reads the crossterm events and updates the state of [`App`].
     ///
     /// If your application needs to perform work in between handling events, you can use the
@@ -204,6 +253,7 @@ impl App {
         match self.screen {
             Screen::Selection => self.on_key_event_selection(key),
             Screen::CreateMR => self.on_key_event_create_mr(key),
+            Screen::SelectReviewers => self.on_key_event_select_reviewers(key),
         }
     }
 
@@ -264,6 +314,43 @@ impl App {
             KeyCode::Esc => {
                 self.screen = Screen::Selection;
             }
+            KeyCode::Enter => {
+                self.screen = Screen::SelectReviewers;
+            }
+            _ => {}
+        }
+    }
+
+    fn on_key_event_select_reviewers(&mut self, key: KeyEvent) {
+        match key.code {
+            KeyCode::Down => {
+                if !self.reviewers.is_empty() {
+                    self.reviewer_index = (self.reviewer_index + 1) % self.reviewers.len();
+                }
+            }
+            KeyCode::Up => {
+                if !self.reviewers.is_empty() {
+                    if self.reviewer_index == 0 {
+                        self.reviewer_index = self.reviewers.len() - 1;
+                    } else {
+                        self.reviewer_index -= 1;
+                    }
+                }
+            }
+            KeyCode::Char(' ') => {
+                if self.selected_reviewers.contains(&self.reviewer_index) {
+                    self.selected_reviewers.remove(&self.reviewer_index);
+                } else {
+                    self.selected_reviewers.insert(self.reviewer_index);
+                }
+            }
+            KeyCode::Enter => {
+                // Finish, could add next stage or summary here
+                self.screen = Screen::Selection;
+            }
+            KeyCode::Esc => {
+                self.screen = Screen::CreateMR;
+            }
             _ => {}
         }
     }
@@ -272,4 +359,26 @@ impl App {
     fn quit(&mut self) {
         self.running = false;
     }
+}
+
+/// Loads reviewers from a TOML file.
+///
+/// This function simulates loading reviewers from a file. In a real application, you would
+/// read from an actual TOML file and parse the contents.
+fn load_reviewers_from_toml() -> Vec<String> {
+    // Read reviewers.toml from the current directory
+    let path = "multimr.toml";
+    let content = std::fs::read_to_string(path).unwrap_or_default();
+    parse_reviewers_toml(&content)
+}
+
+fn parse_reviewers_toml(content: &str) -> Vec<String> {
+    #[derive(Deserialize)]
+    struct ReviewersToml {
+        reviewers: Option<Vec<String>>,
+    }
+    toml::from_str::<ReviewersToml>(content)
+        .ok()
+        .and_then(|r| r.reviewers)
+        .unwrap_or_default()
 }
