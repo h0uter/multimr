@@ -133,12 +133,15 @@ impl App {
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Min(1),
-                Constraint::Length(2),
+                Constraint::Length(1), // for description
+                Constraint::Length(1), // for key help bar
             ])
             .split(frame.area());
         frame.render_widget(list, chunks[0]);
         let desc = Paragraph::new("Select repositories to create MR for").centered();
         frame.render_widget(desc, chunks[1]);
+        let help = Paragraph::new("↑/↓: Move  Space: Select  Enter: Next  q/Esc/Ctrl+C: Quit").centered().style(Style::default().fg(Color::DarkGray));
+        frame.render_widget(help, chunks[2]);
     }
 
     fn render_create_mr(&mut self, frame: &mut Frame) {
@@ -170,12 +173,15 @@ impl App {
                 Constraint::Min(3),
                 Constraint::Length(3),
                 Constraint::Length(3),
+                Constraint::Length(1), // for key help bar
             ])
             .split(frame.area());
         frame.render_widget(title, layout[0]);
         frame.render_widget(dirs, layout[1]);
         frame.render_widget(title_input, layout[2]);
         frame.render_widget(desc_input, layout[3]);
+        let help = Paragraph::new("Tab: Switch field  Type: Input  Backspace: Delete  Esc: Back").centered().style(Style::default().fg(Color::DarkGray));
+        frame.render_widget(help, layout[4]);
     }
 
     /// Reads the crossterm events and updates the state of [`App`].
