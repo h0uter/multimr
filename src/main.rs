@@ -74,7 +74,7 @@ impl App {
     /// - <https://github.com/ratatui/ratatui/tree/main/ratatui-widgets/examples>
     fn render(&mut self, frame: &mut Frame) {
         use ratatui::style::{Color, Style};
-        use ratatui::widgets::ListItem;
+        use ratatui::widgets::{ListItem, Paragraph};
         let title = Line::from("Mutli MR").bold().blue().centered();
         let items: Vec<ListItem> = self
             .dirs
@@ -94,7 +94,20 @@ impl App {
             })
             .collect();
         let list = List::new(items).block(Block::bordered().title(title));
-        frame.render_widget(list, frame.area());
+
+        // Layout: main area for list, bottom area for description
+        use ratatui::layout::{Layout, Constraint, Direction};
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Min(1),
+                Constraint::Length(2),
+            ])
+            .split(frame.area());
+
+        frame.render_widget(list, chunks[0]);
+        let desc = Paragraph::new("Select repositories to create MR for").centered();
+        frame.render_widget(desc, chunks[1]);
     }
 
     /// Reads the crossterm events and updates the state of [`App`].
