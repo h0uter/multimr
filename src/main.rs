@@ -31,6 +31,19 @@ enum Screen {
     Overview,
 }
 
+impl Screen {
+    fn help(&self) -> &'static str {
+        match self {
+            Screen::RepoSelection => "↑/↓: Move  Space: Select  Enter: Next  q/Esc/Ctrl+C: Quit",
+            Screen::CreateMR => {
+                "Tab: Switch field  ↑/↓: Label  Space/Enter: Select Label  Type: Input  Backspace: Delete  Esc: Back"
+            }
+            Screen::SelectReviewers => "↑/↓: Move  Space: Select  Enter: Finish  Esc: Back",
+            Screen::Overview => "y: Confirm  n: Back",
+        }
+    }
+}
+
 /// The main application which holds the state and logic of the application.
 #[derive(Debug, Default)]
 pub struct App {
@@ -148,7 +161,7 @@ impl App {
         frame.render_widget(list, chunks[0]);
         let desc = Paragraph::new("Select repositories to create MR for").centered();
         frame.render_widget(desc, chunks[1]);
-        let help = Paragraph::new("↑/↓: Move  Space: Select  Enter: Next  q/Esc/Ctrl+C: Quit")
+        let help = Paragraph::new(self.screen.help())
             .centered()
             .style(Style::default().fg(Color::DarkGray));
         frame.render_widget(help, chunks[2]);
@@ -205,7 +218,7 @@ impl App {
                     item = item.style(Style::default().fg(Color::Yellow).bg(Color::Blue));
                 } else if i == self.selected_label {
                     item = item.style(Style::default().fg(Color::Yellow));
-                } 
+                }
                 item
             })
             .collect();
@@ -227,7 +240,9 @@ impl App {
         frame.render_widget(title_input, layout[2]);
         frame.render_widget(desc_input, layout[3]);
         frame.render_widget(label_list, layout[4]);
-        let help = Paragraph::new("Tab: Switch field  ↑/↓: Label  Space/Enter: Select Label  Type: Input  Backspace: Delete  Esc: Back").centered().style(Style::default().fg(Color::DarkGray));
+        let help = Paragraph::new(self.screen.help())
+            .centered()
+            .style(Style::default().fg(Color::DarkGray));
         frame.render_widget(help, layout[5]);
     }
 
@@ -265,7 +280,7 @@ impl App {
         frame.render_widget(list, chunks[0]);
         let desc = Paragraph::new("Select reviewers for the MR").centered();
         frame.render_widget(desc, chunks[1]);
-        let help = Paragraph::new("↑/↓: Move  Space: Select  Enter: Finish  Esc: Back")
+        let help = Paragraph::new(self.screen.help())
             .centered()
             .style(Style::default().fg(Color::DarkGray));
         frame.render_widget(help, chunks[2]);
@@ -315,7 +330,7 @@ impl App {
             .split(frame.area());
         let para = Paragraph::new(overview);
         frame.render_widget(para, layout[0]);
-        let help = Paragraph::new("y: Confirm  n: Back")
+        let help = Paragraph::new(self.screen.help())
             .centered()
             .style(Style::default().fg(Color::DarkGray));
         frame.render_widget(help, layout[1]);
