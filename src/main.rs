@@ -167,7 +167,7 @@ impl App {
     fn render_create_mr(&mut self, frame: &mut Frame) {
         use ratatui::layout::{Constraint, Direction, Layout};
         use ratatui::style::{Color, Style};
-        use ratatui::widgets::{List, ListItem, Paragraph, Block};
+        use ratatui::widgets::{Block, List, ListItem, Paragraph};
         let selected_dirs: Vec<&String> = self
             .selected
             .iter()
@@ -183,34 +183,48 @@ impl App {
                 .collect::<Vec<_>>()
                 .join("\n")
         };
-        let title = Paragraph::new("Create Merge Request").style(Style::default().fg(Color::Blue).bold());
+        let title =
+            Paragraph::new("Create Merge Request").style(Style::default().fg(Color::Blue).bold());
         let dirs = Paragraph::new(format!("Repositories:\n{}", dirs_text));
         let title_input = if self.input_focus == InputFocus::Title {
-            Paragraph::new(format!("Title: {}", self.mr_title)).style(Style::default().bg(Color::Blue).fg(Color::White))
+            Paragraph::new(format!("Title: {}", self.mr_title))
+                .style(Style::default().bg(Color::Blue).fg(Color::White))
         } else {
             Paragraph::new(format!("Title: {}", self.mr_title))
         };
         let desc_input = if self.input_focus == InputFocus::Description {
-            Paragraph::new(format!("Description: {}", self.mr_description)).style(Style::default().bg(Color::Blue).fg(Color::White))
+            Paragraph::new(format!("Description: {}", self.mr_description))
+                .style(Style::default().bg(Color::Blue).fg(Color::White))
         } else {
             Paragraph::new(format!("Description: {}", self.mr_description))
         };
         // Label selection box
-        let label_items: Vec<ListItem> = self.labels.iter().enumerate().map(|(i, (k, v))| {
-            let marker = if Some(i) == self.selected_label { "(x)" } else { "( )" };
-            let line = format!("{} {}: {}", marker, k, v);
-            let mut item = ListItem::new(line);
-            if self.input_focus == InputFocus::Label && Some(i) == self.selected_label {
-                item = item.style(Style::default().fg(Color::Yellow).bg(Color::Blue));
-            } else if Some(i) == self.selected_label {
-                item = item.style(Style::default().fg(Color::Yellow));
-            } else if self.input_focus == InputFocus::Label && self.selected_label.is_none() && i == 0 {
-                item = item.style(Style::default().bg(Color::Blue));
-            }
-            item
-        }).collect();
-        let label_list = List::new(label_items)
-            .block(Block::bordered().title("Label"));
+        let label_items: Vec<ListItem> = self
+            .labels
+            .iter()
+            .enumerate()
+            .map(|(i, (k, v))| {
+                let marker = if Some(i) == self.selected_label {
+                    "(x)"
+                } else {
+                    "( )"
+                };
+                let line = format!("{} {}: {}", marker, k, v);
+                let mut item = ListItem::new(line);
+                if self.input_focus == InputFocus::Label && Some(i) == self.selected_label {
+                    item = item.style(Style::default().fg(Color::Yellow).bg(Color::Blue));
+                } else if Some(i) == self.selected_label {
+                    item = item.style(Style::default().fg(Color::Yellow));
+                } else if self.input_focus == InputFocus::Label
+                    && self.selected_label.is_none()
+                    && i == 0
+                {
+                    item = item.style(Style::default().bg(Color::Blue));
+                }
+                item
+            })
+            .collect();
+        let label_list = List::new(label_items).block(Block::bordered().title("Label"));
         // Layout: title, dirs, title input, desc input, label select, help
         let layout = Layout::default()
             .direction(Direction::Vertical)
@@ -391,14 +405,18 @@ impl App {
                 };
             }
             KeyCode::Backspace => match self.input_focus {
-                InputFocus::Title => { self.mr_title.pop(); },
-                InputFocus::Description => { self.mr_description.pop(); },
-                InputFocus::Label => {},
+                InputFocus::Title => {
+                    self.mr_title.pop();
+                }
+                InputFocus::Description => {
+                    self.mr_description.pop();
+                }
+                InputFocus::Label => {}
             },
             KeyCode::Char(c) => match self.input_focus {
                 InputFocus::Title => self.mr_title.push(c),
                 InputFocus::Description => self.mr_description.push(c),
-                InputFocus::Label => {},
+                InputFocus::Label => {}
             },
             KeyCode::Down => {
                 if self.input_focus == InputFocus::Label && !self.labels.is_empty() {
@@ -409,7 +427,11 @@ impl App {
             KeyCode::Up => {
                 if self.input_focus == InputFocus::Label && !self.labels.is_empty() {
                     let idx = self.selected_label.unwrap_or(0);
-                    self.selected_label = Some(if idx == 0 { self.labels.len() - 1 } else { idx - 1 });
+                    self.selected_label = Some(if idx == 0 {
+                        self.labels.len() - 1
+                    } else {
+                        idx - 1
+                    });
                 }
             }
             KeyCode::Enter => {
@@ -420,7 +442,9 @@ impl App {
                     if self.selected_label.is_some() {
                         self.screen = Screen::SelectReviewers;
                     }
-                } else if self.input_focus == InputFocus::Description || self.input_focus == InputFocus::Title {
+                } else if self.input_focus == InputFocus::Description
+                    || self.input_focus == InputFocus::Title
+                {
                     if self.selected_label.is_some() {
                         self.screen = Screen::SelectReviewers;
                     }
