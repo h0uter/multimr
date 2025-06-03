@@ -19,18 +19,13 @@ fn main() -> color_eyre::Result<()> {
     result
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 enum Screen {
+    #[default]
     RepoSelection,
     CreateMR,
     SelectReviewers,
     Overview,
-}
-
-impl Default for Screen {
-    fn default() -> Self {
-        Screen::RepoSelection
-    }
 }
 
 /// The main application which holds the state and logic of the application.
@@ -442,12 +437,11 @@ impl App {
                     if self.selected_label.is_some() {
                         self.screen = Screen::SelectReviewers;
                     }
-                } else if self.input_focus == InputFocus::Description
-                    || self.input_focus == InputFocus::Title
+                } else if (self.input_focus == InputFocus::Description
+                    || self.input_focus == InputFocus::Title)
+                    && self.selected_label.is_some()
                 {
-                    if self.selected_label.is_some() {
-                        self.screen = Screen::SelectReviewers;
-                    }
+                    self.screen = Screen::SelectReviewers;
                 }
             }
             KeyCode::Esc => {
