@@ -520,7 +520,7 @@ impl App {
     fn on_key_event_overview(&mut self, key: KeyEvent) {
         match key.code {
             KeyCode::Char('y') => {
-                let mr = MergeRequest {
+                let mut mr = MergeRequest {
                     title: self.mr_title.clone(),
                     description: self.mr_description.clone(),
                     reviewers: self
@@ -536,13 +536,16 @@ impl App {
                         .map(|k| vec![k.clone()])
                         .unwrap_or_default(),
                     draft: false, // TODO: Add a way to mark as draft
+                    cmd: None,    // Placeholder for command, not used in this example
                 };
                 for dir_index in &self.selected_repos {
                     let dir = self.dirs[*dir_index].clone();
                     std::env::set_current_dir(&self.cfg.working_dir.join(&dir))
                         .expect(format!("Failed to change directory to: {}", dir).as_str());
 
-                    mr.dummy_create();
+                    // mr.dummy_create();
+                    mr.create();
+                    mr.run();
                 }
 
                 self.quit();
@@ -566,22 +569,22 @@ pub struct MergeRequest {
     reviewers: Vec<String>,
     labels: Vec<String>,
     draft: bool,
+    cmd: Option<std::process::Command>,
 }
 
 impl MergeRequest {
     // Placeholder for actual MR creation logic
-    fn dummy_create(&self) {
-        std::process::Command::new("sh")
-            .arg("-c")
-            .arg(format!(
-                "terminal-notifier -sound default -title 'Created MR: {}' -message '{}'",
-                self.title, self.description,
-            ))
-            .status()
-            .ok();
+    fn dummy_create(&mut self) {
+        let mut cmd = std::process::Command::new("sh");
+        cmd.arg("-c").arg(format!(
+            "terminal-notifier -sound default -title 'Created MR: {}' -message '{}'",
+            self.title, self.description,
+        ));
+
+        self.cmd = Some(cmd);
     }
 
-    fn create(&self) {
+    fn create(&mut self) {
         // Create the merge request using glab CLI
         let mut cmd = std::process::Command::new("glab");
         cmd.arg("mr").arg("create").arg("--assignee").arg(ASSIGNEE);
@@ -607,19 +610,60 @@ impl MergeRequest {
             .trim()
             .to_string();
 
+        cmd.arg("--title").arg(&self.title);
+        cmd.arg("--description").arg(&self.description);
+
         if DEFAULT_BRANCHES.contains(&current_branch.as_str()) {
             // If the current branch is main or master, create a new branch
-            // TODO: if current branch is main, create a new branch and commit open changes
-            cmd.arg("--title").arg(&self.title);
-            cmd.arg("--description").arg(&self.description);
+
+            std::process::Command::new("git")
+                .arg("switch")
+                .arg("-c")
+                .arg(self.title.replace(' ', "-"))
+                .status()
+                .expect("Failed to create new branch");
+
+            std::process::Command::new("git")
+                .arg("add")
+                .arg(".")
+                .status()
+                .expect("Failed to add changes");
+
+            std::process::Command::new("git")
+                .arg("commit")
+                .arg("-am")
+                .arg(&self.title)
+                .status()
+                .expect("Failed to commit changes");
+
+            cmd.arg("--push");
         } else {
             // If not, just use the current branch
-            todo!("Create MR existing branches");
+            cmd.arg("--yes");
         }
 
-        // TODO: always push?
+        self.cmd = Some(cmd);
+    }
 
-        let _ = cmd.status();
+    fn run(&mut self) {
+        if let Some(cmd) = &mut self.cmd {
+            let status = cmd.status().expect("Failed to execute command");
+            if !status.success() {
+                eprintln!("Failed to create merge request: {:?}", status);
+            } else {
+                println!("Merge request created successfully.");
+            }
+        } else {
+            eprintln!("No command to run. Please create the MR first.");
+        }
+    }
+
+    fn dry_run(&mut self) {
+        if let Some(cmd) = &self.cmd {
+            println!("Dry run command: {:?}", cmd);
+        } else {
+            eprintln!("No command to dry run. Please create the MR first.");
+        }
     }
 }
 
@@ -689,7 +733,9 @@ fn ensure_git_repo() {
         .output()
         .is_err()
     {
-        eprintln!("[Error] This is not a git repository. Please run this application inside a git repository.");
+        eprintln!(
+            "[Error] This is not a git repository. Please run this application inside a git repository."
+        );
         std::process::exit(1);
     }
 }
