@@ -14,6 +14,7 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
 
+const CONFIG_FILE: &str = "multimr.toml";
 fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
     let terminal = ratatui::init();
@@ -568,9 +569,7 @@ impl App {
 /// This function simulates loading reviewers from a file. In a real application, you would
 /// read from an actual TOML file and parse the contents.
 fn load_reviewers_and_labels_from_toml() -> Config {
-    let path = "multimr.toml";
-
-    let content = std::fs::read_to_string(path).unwrap_or_default();
+    let content = std::fs::read_to_string(CONFIG_FILE).unwrap_or_default();
 
     #[derive(Deserialize)]
     struct ConfigToml {
