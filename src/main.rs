@@ -35,9 +35,7 @@ impl Screen {
     fn help(&self) -> &'static str {
         match self {
             Screen::RepoSelection => "↑/↓: Move  Space: Select  Enter: Next  q/Esc/Ctrl+C: Quit",
-            Screen::CreateMR => {
-                "Tab: Switch field  ↑/↓: Label  Space/Enter: Select Label  Type: Input  Backspace: Delete  Esc: Back"
-            }
+            Screen::CreateMR => "Tab: Switch field  ↑/↓: Select Label  Enter: Next  Esc: Back",
             Screen::SelectReviewers => "↑/↓: Move  Space: Select  Enter: Finish  Esc: Back",
             Screen::Overview => "y: Confirm  n: Back",
         }
@@ -365,12 +363,12 @@ impl App {
         match (key.modifiers, key.code) {
             (_, KeyCode::Esc | KeyCode::Char('q'))
             | (KeyModifiers::CONTROL, KeyCode::Char('c') | KeyCode::Char('C')) => self.quit(),
-            (_, KeyCode::Down) => {
+            (_, KeyCode::Down | KeyCode::Char('j')) => {
                 if !self.dirs.is_empty() {
                     self.selected_index = (self.selected_index + 1) % self.dirs.len();
                 }
             }
-            (_, KeyCode::Up) => {
+            (_, KeyCode::Up | KeyCode::Char('k')) => {
                 if !self.dirs.is_empty() {
                     if self.selected_index == 0 {
                         self.selected_index = self.dirs.len() - 1;
@@ -416,7 +414,27 @@ impl App {
             KeyCode::Char(c) => match self.input_focus {
                 InputFocus::Title => self.mr_title.push(c),
                 InputFocus::Description => self.mr_description.push(c),
-                InputFocus::Label => {}
+                InputFocus::Label => match c {
+                    'j' => {
+                        if !self.labels.is_empty() {
+                            let idx = self.selected_label;
+                            self.selected_label = (idx + 1) % self.labels.len();
+                        }
+                    }
+                    'k' => {
+                        if !self.labels.is_empty() {
+                            let idx = self.selected_label;
+                            self.selected_label = if idx == 0 {
+                                self.labels.len() - 1
+                            } else {
+                                idx - 1
+                            };
+                        }
+                    }
+                    _ => {
+                        // Ignore other characters in label input
+                    }
+                },
             },
             KeyCode::Down => {
                 if self.input_focus == InputFocus::Label && !self.labels.is_empty() {
@@ -452,12 +470,12 @@ impl App {
 
     fn on_key_event_select_reviewers(&mut self, key: KeyEvent) {
         match key.code {
-            KeyCode::Down => {
+            KeyCode::Down | KeyCode::Char('j') => {
                 if !self.reviewers.is_empty() {
                     self.reviewer_index = (self.reviewer_index + 1) % self.reviewers.len();
                 }
             }
-            KeyCode::Up => {
+            KeyCode::Up | KeyCode::Char('h') => {
                 if !self.reviewers.is_empty() {
                     if self.reviewer_index == 0 {
                         self.reviewer_index = self.reviewers.len() - 1;
