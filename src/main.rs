@@ -10,9 +10,9 @@ use ratatui::{
     widgets::{Block, List},
 };
 use serde::Deserialize;
-use std::collections::HashSet;
-use std::env;
+use std::collections::{HashMap, HashSet};
 use std::fs;
+use std::path::{Path, PathBuf};
 
 fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
@@ -42,6 +42,16 @@ impl Screen {
     }
 }
 
+#[derive(Debug, Default)]
+pub struct Config {
+    /// The root directory for the repositories.
+    pub root: PathBuf,
+    /// List of reviewers.
+    pub reviewers: Vec<String>,
+    /// List of labels.
+    pub labels: HashMap<String, String>, // (key, value)
+}
+
 /// The main application which holds the state and logic of the application.
 #[derive(Debug, Default)]
 pub struct App {
@@ -58,14 +68,12 @@ pub struct App {
     mr_title: String,
     mr_description: String,
     input_focus: InputFocus,
-    /// List of reviewers
-    reviewers: Vec<String>,
     /// Indices of selected reviewers
     selected_reviewers: HashSet<usize>,
     /// Currently highlighted reviewer index
     reviewer_index: usize,
-    labels: Vec<(String, String)>, // (key, value)
     selected_label: usize,
+    cfg: Config,
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -81,30 +89,27 @@ impl App {
     pub fn new() -> Self {
         let mut app = Self {
             selected_label: 0,
+            selected_index: 0,
             ..Default::default()
         };
-        // Populate dirs with all directories in the current working directory
-        if let Ok(cwd) = env::current_dir() {
-            if let Ok(entries) = fs::read_dir(cwd) {
-                app.dirs = entries
-                    .filter_map(|entry| entry.ok())
-                    .filter_map(|entry| {
-                        let path = entry.path();
-                        if path.is_dir() {
-                            path.file_name().map(|n| n.to_string_lossy().to_string())
-                        } else {
-                            None
-                        }
-                    })
-                    .collect();
-            }
-        }
-        app.selected_index = 0;
-        app.selected = HashSet::new();
         // Load reviewers from reviewers.toml
-        let (reviewers, labels) = load_reviewers_and_labels_from_toml();
-        app.reviewers = reviewers;
-        app.labels = labels;
+        let cfg = load_reviewers_and_labels_from_toml();
+        app.cfg = cfg;
+
+        // Populate dirs with all directories in the current working directory
+        if let Ok(entries) = fs::read_dir(&app.cfg.root) {
+            app.dirs = entries
+                .filter_map(|entry| entry.ok())
+                .filter_map(|entry| {
+                    let path = entry.path();
+                    if path.is_dir() {
+                        path.file_name().map(|n| n.to_string_lossy().to_string())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+        }
         app
     }
 
@@ -151,18 +156,26 @@ impl App {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Min(1),
+                Constraint::Min(3),
                 Constraint::Length(1), // for description
                 Constraint::Length(1), // for key help bar
+                Constraint::Length(1), // for directory info
             ])
             .split(frame.area());
         frame.render_widget(list, chunks[0]);
         let desc = Paragraph::new("Select repositories to create MR for").centered();
         frame.render_widget(desc, chunks[1]);
+        let dir_info = Paragraph::new(format!(
+            "Current directory: {} (Selected: {})",
+            self.cfg.root.display(),
+            self.selected.len()
+        ))
+        .centered();
+        frame.render_widget(dir_info, chunks[2]);
         let help = Paragraph::new(self.screen.help())
             .centered()
             .style(Style::default().fg(Color::DarkGray));
-        frame.render_widget(help, chunks[2]);
+        frame.render_widget(help, chunks[3]);
     }
 
     fn render_create_mr(&mut self, frame: &mut Frame) {
@@ -201,6 +214,7 @@ impl App {
         };
         // Label selection box
         let label_items: Vec<ListItem> = self
+            .cfg
             .labels
             .iter()
             .enumerate()
@@ -250,6 +264,7 @@ impl App {
         use ratatui::widgets::{ListItem, Paragraph};
         let title = Line::from("Select Reviewers").bold().blue().centered();
         let items: Vec<ListItem> = self
+            .cfg
             .reviewers
             .iter()
             .enumerate()
@@ -298,7 +313,7 @@ impl App {
             .selected_reviewers
             .iter()
             .copied()
-            .filter_map(|i| self.reviewers.get(i))
+            .filter_map(|i| self.cfg.reviewers.get(i))
             .collect();
         let dirs_text = if selected_dirs.is_empty() {
             "No repositories selected".to_string()
@@ -416,16 +431,16 @@ impl App {
                 InputFocus::Description => self.mr_description.push(c),
                 InputFocus::Label => match c {
                     'j' => {
-                        if !self.labels.is_empty() {
+                        if !self.cfg.labels.is_empty() {
                             let idx = self.selected_label;
-                            self.selected_label = (idx + 1) % self.labels.len();
+                            self.selected_label = (idx + 1) % self.cfg.labels.len();
                         }
                     }
                     'k' => {
-                        if !self.labels.is_empty() {
+                        if !self.cfg.labels.is_empty() {
                             let idx = self.selected_label;
                             self.selected_label = if idx == 0 {
-                                self.labels.len() - 1
+                                self.cfg.labels.len() - 1
                             } else {
                                 idx - 1
                             };
@@ -437,16 +452,16 @@ impl App {
                 },
             },
             KeyCode::Down => {
-                if self.input_focus == InputFocus::Label && !self.labels.is_empty() {
+                if self.input_focus == InputFocus::Label && !self.cfg.labels.is_empty() {
                     let idx = self.selected_label;
-                    self.selected_label = (idx + 1) % self.labels.len();
+                    self.selected_label = (idx + 1) % self.cfg.labels.len();
                 }
             }
             KeyCode::Up => {
-                if self.input_focus == InputFocus::Label && !self.labels.is_empty() {
+                if self.input_focus == InputFocus::Label && !self.cfg.labels.is_empty() {
                     let idx = self.selected_label;
                     self.selected_label = if idx == 0 {
-                        self.labels.len() - 1
+                        self.cfg.labels.len() - 1
                     } else {
                         idx - 1
                     };
@@ -471,14 +486,14 @@ impl App {
     fn on_key_event_select_reviewers(&mut self, key: KeyEvent) {
         match key.code {
             KeyCode::Down | KeyCode::Char('j') => {
-                if !self.reviewers.is_empty() {
-                    self.reviewer_index = (self.reviewer_index + 1) % self.reviewers.len();
+                if !self.cfg.reviewers.is_empty() {
+                    self.reviewer_index = (self.reviewer_index + 1) % self.cfg.reviewers.len();
                 }
             }
             KeyCode::Up | KeyCode::Char('h') => {
-                if !self.reviewers.is_empty() {
+                if !self.cfg.reviewers.is_empty() {
                     if self.reviewer_index == 0 {
-                        self.reviewer_index = self.reviewers.len() - 1;
+                        self.reviewer_index = self.cfg.reviewers.len() - 1;
                     } else {
                         self.reviewer_index -= 1;
                     }
@@ -515,7 +530,7 @@ impl App {
                     .selected_reviewers
                     .iter()
                     .copied()
-                    .filter_map(|i| self.reviewers.get(i))
+                    .filter_map(|i| self.cfg.reviewers.get(i))
                     .collect();
                 let _data = format!(
                     "Repositories: {}\nTitle: {}\nDescription: {}\nReviewers: {}",
@@ -558,24 +573,52 @@ impl App {
 ///
 /// This function simulates loading reviewers from a file. In a real application, you would
 /// read from an actual TOML file and parse the contents.
-fn load_reviewers_and_labels_from_toml() -> (Vec<String>, Vec<(String, String)>) {
+fn load_reviewers_and_labels_from_toml() -> Config {
     let path = "multimr.toml";
+
     let content = std::fs::read_to_string(path).unwrap_or_default();
 
     #[derive(Deserialize)]
     struct ConfigToml {
         reviewers: Option<Vec<String>>,
-        labels: Option<std::collections::BTreeMap<String, String>>,
+        labels: Option<HashMap<String, String>>,
+        root: Option<String>,
     }
 
+    // if the entire parsing fails return a config with None values
     let parsed: ConfigToml = toml::from_str(&content).unwrap_or(ConfigToml {
         reviewers: None,
         labels: None,
+        root: None,
     });
-    let reviewers = parsed.reviewers.unwrap_or_default();
-    let labels = parsed
-        .labels
-        .map(|m| m.into_iter().collect())
-        .unwrap_or_default();
-    (reviewers, labels)
+
+    // check if a root is specified in toml, if not use current directory
+    let root = parsed.root.unwrap_or_else(|| {
+        ".".to_string() // default to current directory if not specified
+    });
+
+    // there is a root, now create a PathBuf
+    let working_dir = if root.starts_with('/') || root.starts_with('\\') {
+        // root // absolute path
+        PathBuf::from(&root)
+            .canonicalize()
+            .expect("Failed to resolve absolute path")
+    } else {
+        // working dir is specified as relative path
+        std::env::current_dir()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .join(root)
+            .canonicalize()
+            .expect("Failed to resolve relative path")
+    };
+
+    // if individual fields fail, we use default values
+    Config {
+        root: working_dir,
+        reviewers: parsed.reviewers.unwrap_or_default(),
+        labels: parsed
+            .labels
+            .map(|m| m.into_iter().collect())
+            .unwrap_or_default(),
+    }
 }
