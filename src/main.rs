@@ -15,8 +15,6 @@ use std::fs;
 use std::path::PathBuf;
 
 const CONFIG_FILE: &str = "multimr.toml";
-
-const ASSIGNEE: &str = "your_username"; // Replace with your GitLab username
 const DEFAULT_BRANCHES: [&str; 2] = ["main", "master"];
 
 fn main() -> color_eyre::Result<()> {
@@ -57,6 +55,8 @@ pub struct Config {
     pub reviewers: Vec<String>,
     /// List of labels.
     pub labels: HashMap<String, String>, // (key, value)
+    /// Assignee for the merge request.
+    pub assignee: String,
 }
 
 /// The main application which holds the state and logic of the application.
@@ -536,7 +536,8 @@ impl App {
                         .map(|k| vec![k.clone()])
                         .unwrap_or_default(),
                     draft: false, // TODO: Add a way to mark as draft
-                    cmd: None,    // Placeholder for command, not used in this example
+                    assignee: self.cfg.assignee.clone(),
+                    cmd: None, // Placeholder for command, not used in this example
                 };
                 for dir_index in &self.selected_repos {
                     let dir = self.dirs[*dir_index].clone();
@@ -569,6 +570,7 @@ pub struct MergeRequest {
     reviewers: Vec<String>,
     labels: Vec<String>,
     draft: bool,
+    assignee: String,
     cmd: Option<std::process::Command>,
 }
 
@@ -587,7 +589,10 @@ impl MergeRequest {
     fn create(&mut self) {
         // Create the merge request using glab CLI
         let mut cmd = std::process::Command::new("glab");
-        cmd.arg("mr").arg("create").arg("--assignee").arg(ASSIGNEE);
+        cmd.arg("mr")
+            .arg("create")
+            .arg("--assignee")
+            .arg(&self.assignee);
 
         if !self.reviewers.is_empty() {
             for reviewer in &self.reviewers {
@@ -675,6 +680,7 @@ fn load_config_from_toml() -> Config {
         reviewers: Option<Vec<String>>,
         labels: Option<HashMap<String, String>>,
         working_dir: Option<String>,
+        assignee: Option<String>,
     }
 
     // if the entire parsing fails return a config with None values
@@ -682,6 +688,7 @@ fn load_config_from_toml() -> Config {
         reviewers: None,
         labels: None,
         working_dir: None,
+        assignee: None,
     });
 
     // check if a root is specified in toml, if not use current directory
@@ -710,6 +717,7 @@ fn load_config_from_toml() -> Config {
             .labels
             .map(|m| m.into_iter().collect())
             .unwrap_or_default(),
+        assignee: parsed.assignee.expect("Assignee is required"),
     }
 }
 
