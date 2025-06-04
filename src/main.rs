@@ -17,7 +17,10 @@ use std::path::PathBuf;
 const CONFIG_FILE: &str = "multimr.toml";
 
 const ASSIGNEE: &str = "your_username"; // Replace with your GitLab username
+
 fn main() -> color_eyre::Result<()> {
+    ensure_glab_installed();
+
     color_eyre::install()?;
     let terminal = ratatui::init();
     let result = App::new().run(terminal);
@@ -664,5 +667,16 @@ fn load_config_from_toml() -> Config {
             .labels
             .map(|m| m.into_iter().collect())
             .unwrap_or_default(),
+    }
+}
+
+fn ensure_glab_installed() {
+    if std::process::Command::new("gglab")
+        .arg("--version")
+        .output()
+        .is_err()
+    {
+        eprintln!("[Error] Gitlab CLI `glab` is not installed. Please install it to use this application.");
+        std::process::exit(1);
     }
 }
