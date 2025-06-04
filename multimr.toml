@@ -2,4 +2,4 @@ reviewers = ["alice", "bob", "carol"]
 
 labels = { feat = "type::feature", fix = "type::fix" }
 
-# root = "src_repos"
+working_dir = "src_repos"

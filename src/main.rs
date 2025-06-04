@@ -45,7 +45,7 @@ impl Screen {
 #[derive(Debug, Default)]
 pub struct Config {
     /// The root directory for the repositories.
-    pub root: PathBuf,
+    pub working_dir: PathBuf,
     /// List of reviewers.
     pub reviewers: Vec<String>,
     /// List of labels.
@@ -97,7 +97,7 @@ impl App {
         app.cfg = cfg;
 
         // Populate dirs with all directories in the current working directory
-        if let Ok(entries) = fs::read_dir(&app.cfg.root) {
+        if let Ok(entries) = fs::read_dir(&app.cfg.working_dir) {
             app.dirs = entries
                 .filter_map(|entry| entry.ok())
                 .filter_map(|entry| {
@@ -167,7 +167,7 @@ impl App {
         frame.render_widget(desc, chunks[1]);
         let dir_info = Paragraph::new(format!(
             "Current directory: {} (Selected: {})",
-            self.cfg.root.display(),
+            self.cfg.working_dir.display(),
             self.selected.len()
         ))
         .centered();
@@ -582,39 +582,39 @@ fn load_reviewers_and_labels_from_toml() -> Config {
     struct ConfigToml {
         reviewers: Option<Vec<String>>,
         labels: Option<HashMap<String, String>>,
-        root: Option<String>,
+        working_dir: Option<String>,
     }
 
     // if the entire parsing fails return a config with None values
     let parsed: ConfigToml = toml::from_str(&content).unwrap_or(ConfigToml {
         reviewers: None,
         labels: None,
-        root: None,
+        working_dir: None,
     });
 
     // check if a root is specified in toml, if not use current directory
-    let root = parsed.root.unwrap_or_else(|| {
+    let working_dir_str = parsed.working_dir.unwrap_or_else(|| {
         ".".to_string() // default to current directory if not specified
     });
 
     // there is a root, now create a PathBuf
-    let working_dir = if root.starts_with('/') || root.starts_with('\\') {
+    let working_dir = if working_dir_str.starts_with('/') || working_dir_str.starts_with('\\') {
         // root // absolute path
-        PathBuf::from(&root)
+        PathBuf::from(&working_dir_str)
             .canonicalize()
             .expect("Failed to resolve absolute path")
     } else {
         // working dir is specified as relative path
         std::env::current_dir()
             .unwrap_or_else(|_| PathBuf::from("."))
-            .join(root)
+            .join(working_dir_str)
             .canonicalize()
             .expect("Failed to resolve relative path")
     };
 
     // if individual fields fail, we use default values
     Config {
-        root: working_dir,
+        working_dir,
         reviewers: parsed.reviewers.unwrap_or_default(),
         labels: parsed
             .labels
