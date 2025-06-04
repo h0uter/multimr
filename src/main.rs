@@ -587,9 +587,7 @@ fn load_reviewers_and_labels_from_toml() -> Config {
     });
 
     // check if a root is specified in toml, if not use current directory
-    let working_dir_str = parsed.working_dir.unwrap_or_else(|| {
-        ".".to_string() // default to current directory if not specified
-    });
+    let working_dir_str = parsed.working_dir.unwrap_or(".".to_string());
 
     // there is a root, now create a PathBuf
     let working_dir = if working_dir_str.starts_with('/') || working_dir_str.starts_with('\\') {
