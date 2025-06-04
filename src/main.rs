@@ -530,8 +530,13 @@ impl App {
                         .map(|k| vec![k.clone()])
                         .unwrap_or_default(),
                 };
+                for dir_index in &self.selected_repos {
+                    let dir = self.dirs[*dir_index].clone();
+                    std::env::set_current_dir(&self.cfg.working_dir.join(&dir))
+                        .expect(format!("Failed to change directory to: {}", dir).as_str());
 
-                mr.create();
+                    mr.create();
+                }
 
                 self.quit();
             }
