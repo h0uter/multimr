@@ -15,6 +15,8 @@ use std::fs;
 use std::path::PathBuf;
 
 const CONFIG_FILE: &str = "multimr.toml";
+
+const ASSIGNEE: &str = "your_username"; // Replace with your GitLab username
 fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
     let terminal = ratatui::init();
@@ -535,7 +537,7 @@ impl App {
                     std::env::set_current_dir(&self.cfg.working_dir.join(&dir))
                         .expect(format!("Failed to change directory to: {}", dir).as_str());
 
-                    mr.create();
+                    mr.dummy_create();
                 }
 
                 self.quit();
@@ -562,7 +564,7 @@ pub struct MergeRequest {
 
 impl MergeRequest {
     // Placeholder for actual MR creation logic
-    fn create(&self) {
+    fn dummy_create(&self) {
         std::process::Command::new("sh")
             .arg("-c")
             .arg(format!(
@@ -571,6 +573,50 @@ impl MergeRequest {
             ))
             .status()
             .ok();
+    }
+
+    fn create(&self) {
+        let mut cmd = std::process::Command::new("glab");
+        cmd.arg("mr").arg("create").arg("--assignee").arg(ASSIGNEE);
+
+        if !self.reviewers.is_empty() {
+            for reviewer in &self.reviewers {
+                cmd.arg("--reviewer").arg(reviewer);
+            }
+        }
+
+        if !self.labels.is_empty() {
+            for label in &self.labels {
+                cmd.arg("--label").arg(label);
+            }
+        }
+
+        // let current_branch = ;
+
+        let current_branch_output = std::process::Command::new("git")
+            .arg("branch")
+            .arg("--show-current")
+            .output()
+            .expect("Failed to get current branch");
+        let current_branch = String::from_utf8_lossy(&current_branch_output.stdout)
+            .trim()
+            .to_string();
+
+        const DEFAULT_BRANCHES: [&str; 2] = ["main", "master"];
+
+        if DEFAULT_BRANCHES.contains(&current_branch.as_str()) {
+            // If the current branch is main or master, create a new branch
+            // TODO: if current branch is main, create a new branch and commit open changes
+            cmd.arg("--title").arg(&self.title);
+            cmd.arg("--description").arg(&self.description);
+        } else {
+            // If not, just use the current branch
+            todo!("Create MR existing branches");
+        }
+
+        // TODO: always push?
+
+        let _ = cmd.status();
     }
 }
 
