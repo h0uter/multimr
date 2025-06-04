@@ -12,7 +12,7 @@ use ratatui::{
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
