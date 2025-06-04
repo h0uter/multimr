@@ -17,6 +17,7 @@ use std::path::PathBuf;
 const CONFIG_FILE: &str = "multimr.toml";
 
 const ASSIGNEE: &str = "your_username"; // Replace with your GitLab username
+const DEFAULT_BRANCHES: [&str; 2] = ["main", "master"];
 
 fn main() -> color_eyre::Result<()> {
     ensure_glab_installed();
@@ -606,8 +607,6 @@ impl MergeRequest {
             .trim()
             .to_string();
 
-        const DEFAULT_BRANCHES: [&str; 2] = ["main", "master"];
-
         if DEFAULT_BRANCHES.contains(&current_branch.as_str()) {
             // If the current branch is main or master, create a new branch
             // TODO: if current branch is main, create a new branch and commit open changes
@@ -671,12 +670,14 @@ fn load_config_from_toml() -> Config {
 }
 
 fn ensure_glab_installed() {
-    if std::process::Command::new("gglab")
+    if std::process::Command::new("glab")
         .arg("--version")
         .output()
         .is_err()
     {
-        eprintln!("[Error] Gitlab CLI `glab` is not installed. Please install it to use this application.");
+        eprintln!(
+            "[Error] Gitlab CLI `glab` is not installed. Please install it to use this application."
+        );
         std::process::exit(1);
     }
 }
