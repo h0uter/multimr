@@ -29,7 +29,7 @@ enum Screen {
     RepoSelection,
     CreateMR,
     ReviewerSelection,
-    Overview,
+    Finalize,
 }
 
 impl Screen {
@@ -38,7 +38,7 @@ impl Screen {
             Screen::RepoSelection => "↑/↓: Move  Space: Select  Enter: Next  q/Esc/Ctrl+C: Quit",
             Screen::CreateMR => "Tab: Switch field  ↑/↓: Select Label  Enter: Next  Esc: Back",
             Screen::ReviewerSelection => "↑/↓: Move  Space: Select  Enter: Finish  Esc: Back",
-            Screen::Overview => "y: Confirm  n: Back",
+            Screen::Finalize => "y: Confirm  n: Back",
         }
     }
 }
@@ -130,7 +130,7 @@ impl App {
             Screen::RepoSelection => self.render_repo_selection(frame),
             Screen::CreateMR => self.render_create_mr(frame),
             Screen::ReviewerSelection => self.render_reviewer_selection(frame),
-            Screen::Overview => self.render_overview(frame),
+            Screen::Finalize => self.render_overview(frame),
         }
     }
 
@@ -371,7 +371,7 @@ impl App {
             Screen::RepoSelection => self.on_key_event_selection(key),
             Screen::CreateMR => self.on_key_event_create_mr(key),
             Screen::ReviewerSelection => self.on_key_event_select_reviewers(key),
-            Screen::Overview => self.on_key_event_overview(key),
+            Screen::Finalize => self.on_key_event_overview(key),
         }
     }
 
@@ -502,7 +502,7 @@ impl App {
                 }
             }
             KeyCode::Enter => {
-                self.screen = Screen::Overview;
+                self.screen = Screen::Finalize;
             }
             KeyCode::Esc => {
                 self.screen = Screen::CreateMR;
