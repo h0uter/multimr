@@ -94,7 +94,7 @@ impl App {
             ..Default::default()
         };
         // Load reviewers from reviewers.toml
-        let cfg = load_reviewers_and_labels_from_toml();
+        let cfg = load_config_from_toml();
         app.cfg = cfg;
 
         // Populate dirs with all directories in the current working directory
@@ -545,8 +545,10 @@ impl App {
                 // Run placeholder shell command and exit
                 std::process::Command::new("sh")
                     .arg("-c")
-                    // .arg(format!("echo '{}'", data.replace("'", "''")))
-                    .arg("terminal-notifier -sound default -message 'Merge Request Created'")
+                    .arg(format!(
+                        "terminal-notifier -sound default -title 'Created MR: {}' -message '{}'",
+                        self.mr_title, self.mr_description,
+                    ))
                     .status()
                     .ok();
                 self.quit();
@@ -564,11 +566,7 @@ impl App {
     }
 }
 
-/// Loads reviewers from a TOML file.
-///
-/// This function simulates loading reviewers from a file. In a real application, you would
-/// read from an actual TOML file and parse the contents.
-fn load_reviewers_and_labels_from_toml() -> Config {
+fn load_config_from_toml() -> Config {
     let content = std::fs::read_to_string(CONFIG_FILE).unwrap_or_default();
 
     #[derive(Deserialize)]
