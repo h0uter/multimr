@@ -681,3 +681,15 @@ fn ensure_glab_installed() {
         std::process::exit(1);
     }
 }
+
+fn ensure_git_repo() {
+    if std::process::Command::new("git")
+        .arg("rev-parse")
+        .arg("--is-inside-work-tree")
+        .output()
+        .is_err()
+    {
+        eprintln!("[Error] This is not a git repository. Please run this application inside a git repository.");
+        std::process::exit(1);
+    }
+}
