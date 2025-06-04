@@ -577,6 +577,7 @@ impl MergeRequest {
     }
 
     fn create(&self) {
+        // Create the merge request using glab CLI
         let mut cmd = std::process::Command::new("glab");
         cmd.arg("mr").arg("create").arg("--assignee").arg(ASSIGNEE);
 
