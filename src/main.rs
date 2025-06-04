@@ -468,13 +468,7 @@ impl App {
                 }
             }
             KeyCode::Enter => {
-                if self.input_focus == InputFocus::Label {
-                    self.screen = Screen::SelectReviewers;
-                } else if self.input_focus == InputFocus::Description
-                    || self.input_focus == InputFocus::Title
-                {
-                    self.screen = Screen::SelectReviewers;
-                }
+                self.screen = Screen::SelectReviewers;
             }
             KeyCode::Esc => {
                 self.screen = Screen::RepoSelection;
