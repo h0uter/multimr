@@ -61,7 +61,7 @@ pub struct App {
     /// List of directories in the current working directory.
     dirs: Vec<String>,
     /// Indices of selected directories
-    selected: HashSet<usize>,
+    selected_repos: HashSet<usize>,
     /// Currently highlighted directory index
     selected_index: usize,
     screen: Screen,
@@ -141,7 +141,7 @@ impl App {
             .iter()
             .enumerate()
             .map(|(i, d)| {
-                let line = if self.selected.contains(&i) {
+                let line = if self.selected_repos.contains(&i) {
                     format!("[x] {}", d)
                 } else {
                     format!("[ ] {}", d)
@@ -169,7 +169,7 @@ impl App {
         let dir_info = Paragraph::new(format!(
             "Current directory: {} (Selected: {})",
             self.cfg.working_dir.display(),
-            self.selected.len()
+            self.selected_repos.len()
         ))
         .centered();
         frame.render_widget(dir_info, chunks[2]);
@@ -184,7 +184,7 @@ impl App {
         use ratatui::style::{Color, Style};
         use ratatui::widgets::{Block, List, ListItem, Paragraph};
         let selected_dirs: Vec<&String> = self
-            .selected
+            .selected_repos
             .iter()
             .copied()
             .filter_map(|i| self.dirs.get(i))
@@ -305,7 +305,7 @@ impl App {
         use ratatui::style::{Color, Style};
         use ratatui::widgets::Paragraph;
         let selected_dirs: Vec<&String> = self
-            .selected
+            .selected_repos
             .iter()
             .copied()
             .filter_map(|i| self.dirs.get(i))
@@ -394,14 +394,14 @@ impl App {
                 }
             }
             (_, KeyCode::Char(' ')) => {
-                if self.selected.contains(&self.selected_index) {
-                    self.selected.remove(&self.selected_index);
+                if self.selected_repos.contains(&self.selected_index) {
+                    self.selected_repos.remove(&self.selected_index);
                 } else {
-                    self.selected.insert(self.selected_index);
+                    self.selected_repos.insert(self.selected_index);
                 }
             }
             (_, KeyCode::Enter) => {
-                if !self.selected.is_empty() {
+                if !self.selected_repos.is_empty() {
                     self.screen = Screen::CreateMR;
                 }
             }
@@ -514,43 +514,25 @@ impl App {
     fn on_key_event_overview(&mut self, key: KeyEvent) {
         match key.code {
             KeyCode::Char('y') => {
-                // Aggregate data as string
-                let selected_dirs: Vec<&String> = self
-                    .selected
-                    .iter()
-                    .copied()
-                    .filter_map(|i| self.dirs.get(i))
-                    .collect();
-                let selected_reviewers: Vec<&String> = self
-                    .selected_reviewers
-                    .iter()
-                    .copied()
-                    .filter_map(|i| self.cfg.reviewers.get(i))
-                    .collect();
-                let _data = format!(
-                    "Repositories: {}\nTitle: {}\nDescription: {}\nReviewers: {}",
-                    selected_dirs
+                let mr = MergeRequest {
+                    title: self.mr_title.clone(),
+                    description: self.mr_description.clone(),
+                    reviewers: self
+                        .selected_reviewers
                         .iter()
-                        .map(|s| s.as_str())
-                        .collect::<Vec<_>>()
-                        .join(", "),
-                    self.mr_title,
-                    self.mr_description,
-                    selected_reviewers
-                        .iter()
-                        .map(|s| s.as_str())
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                );
-                // Run placeholder shell command and exit
-                std::process::Command::new("sh")
-                    .arg("-c")
-                    .arg(format!(
-                        "terminal-notifier -sound default -title 'Created MR: {}' -message '{}'",
-                        self.mr_title, self.mr_description,
-                    ))
-                    .status()
-                    .ok();
+                        .map(|&i| self.cfg.reviewers[i].clone())
+                        .collect(),
+                    labels: self
+                        .cfg
+                        .labels
+                        .keys()
+                        .nth(self.selected_label)
+                        .map(|k| vec![k.clone()])
+                        .unwrap_or_default(),
+                };
+
+                mr.create();
+
                 self.quit();
             }
             KeyCode::Char('n') => {
@@ -563,6 +545,27 @@ impl App {
     /// Set running to false to quit the application.
     fn quit(&mut self) {
         self.running = false;
+    }
+}
+
+pub struct MergeRequest {
+    title: String,
+    description: String,
+    reviewers: Vec<String>,
+    labels: Vec<String>,
+}
+
+impl MergeRequest {
+    // Placeholder for actual MR creation logic
+    fn create(&self) {
+        std::process::Command::new("sh")
+            .arg("-c")
+            .arg(format!(
+                "terminal-notifier -sound default -title 'Created MR: {}' -message '{}'",
+                self.title, self.description,
+            ))
+            .status()
+            .ok();
     }
 }
 
