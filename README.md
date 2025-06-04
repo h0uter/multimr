@@ -7,6 +7,7 @@
 - [ ] Introduce option to create MR's as draft
 - [ ] vizualize the branches of the src_repo's
 - [ ] add logic to automatically create branches in the src_repo's
+- [ ] add related merge requests in description of the merge request
 
 ## Workflows
 
