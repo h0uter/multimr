@@ -560,6 +560,7 @@ pub struct MergeRequest {
     description: String,
     reviewers: Vec<String>,
     labels: Vec<String>,
+    draft: bool,
 }
 
 impl MergeRequest {
@@ -590,8 +591,6 @@ impl MergeRequest {
                 cmd.arg("--label").arg(label);
             }
         }
-
-        // let current_branch = ;
 
         let current_branch_output = std::process::Command::new("git")
             .arg("branch")
