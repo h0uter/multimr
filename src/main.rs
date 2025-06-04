@@ -531,6 +531,7 @@ impl App {
                         .nth(self.selected_label)
                         .map(|k| vec![k.clone()])
                         .unwrap_or_default(),
+                    draft: false, // TODO: Add a way to mark as draft
                 };
                 for dir_index in &self.selected_repos {
                     let dir = self.dirs[*dir_index].clone();
