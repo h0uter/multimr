@@ -28,7 +28,7 @@ enum Screen {
     #[default]
     RepoSelection,
     CreateMR,
-    SelectReviewers,
+    ReviewerSelection,
     Overview,
 }
 
@@ -37,7 +37,7 @@ impl Screen {
         match self {
             Screen::RepoSelection => "↑/↓: Move  Space: Select  Enter: Next  q/Esc/Ctrl+C: Quit",
             Screen::CreateMR => "Tab: Switch field  ↑/↓: Select Label  Enter: Next  Esc: Back",
-            Screen::SelectReviewers => "↑/↓: Move  Space: Select  Enter: Finish  Esc: Back",
+            Screen::ReviewerSelection => "↑/↓: Move  Space: Select  Enter: Finish  Esc: Back",
             Screen::Overview => "y: Confirm  n: Back",
         }
     }
@@ -127,14 +127,14 @@ impl App {
     /// Renders the user interface.
     fn render(&mut self, frame: &mut Frame) {
         match self.screen {
-            Screen::RepoSelection => self.render_selection(frame),
+            Screen::RepoSelection => self.render_repo_selection(frame),
             Screen::CreateMR => self.render_create_mr(frame),
-            Screen::SelectReviewers => self.render_select_reviewers(frame),
+            Screen::ReviewerSelection => self.render_reviewer_selection(frame),
             Screen::Overview => self.render_overview(frame),
         }
     }
 
-    fn render_selection(&mut self, frame: &mut Frame) {
+    fn render_repo_selection(&mut self, frame: &mut Frame) {
         let title = Line::from("Mutli MR").bold().blue().centered();
         let items: Vec<ListItem> = self
             .dirs
@@ -259,7 +259,7 @@ impl App {
         frame.render_widget(help, layout[5]);
     }
 
-    fn render_select_reviewers(&mut self, frame: &mut Frame) {
+    fn render_reviewer_selection(&mut self, frame: &mut Frame) {
         use ratatui::layout::{Constraint, Direction, Layout};
         use ratatui::style::{Color, Style};
         use ratatui::widgets::{ListItem, Paragraph};
@@ -370,7 +370,7 @@ impl App {
         match self.screen {
             Screen::RepoSelection => self.on_key_event_selection(key),
             Screen::CreateMR => self.on_key_event_create_mr(key),
-            Screen::SelectReviewers => self.on_key_event_select_reviewers(key),
+            Screen::ReviewerSelection => self.on_key_event_select_reviewers(key),
             Screen::Overview => self.on_key_event_overview(key),
         }
     }
@@ -469,7 +469,7 @@ impl App {
                 }
             }
             KeyCode::Enter => {
-                self.screen = Screen::SelectReviewers;
+                self.screen = Screen::ReviewerSelection;
             }
             KeyCode::Esc => {
                 self.screen = Screen::RepoSelection;
@@ -554,7 +554,7 @@ impl App {
                 self.quit();
             }
             KeyCode::Char('n') => {
-                self.screen = Screen::SelectReviewers;
+                self.screen = Screen::ReviewerSelection;
             }
             _ => {}
         }
