@@ -3,3 +3,7 @@ default:
 
 watch:
     watchexec -w src -r --clear=reset cargo run
+
+# install the cli locally
+install:
+    cargo install --path .

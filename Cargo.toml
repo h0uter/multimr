@@ -6,6 +6,14 @@ authors = ["W. Meijer <houterm@gmail.com>"]
 license = "MIT"
 edition = "2024"
 
+[[bin]]
+name = "mmr"
+path = "src/main.rs"
+
+[[bin]]
+name = "multimr"
+path = "src/main.rs"
+
 [dependencies]
 crossterm = "0.28.1"
 ratatui = "0.29.0"
