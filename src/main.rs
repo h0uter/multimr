@@ -39,7 +39,7 @@ enum Screen {
 impl Screen {
     fn help(&self) -> &'static str {
         match self {
-            Screen::RepoSelection => "↑/↓: Move  Space: Select  Enter: Next  q/Esc/Ctrl+C: Quit",
+            Screen::RepoSelection => "↑/↓: Move  Space: Select  Enter: Next  q/Esc: Quit",
             Screen::CreateMR => "Tab: Switch field  ↑/↓: Select Label  Enter: Next  Esc: Back",
             Screen::ReviewerSelection => "↑/↓: Move  Space: Select  Enter: Finish  Esc: Back",
             Screen::Finalize => "y: Confirm  n: Back",
