@@ -1,3 +1,6 @@
+#:schema ./multimr.schema.json
+# "$schema" = "https://github.com/h0uter/multimr.schema.json"
+
 reviewers = ["alice", "bob", "carol"]
 
 labels = { feat = "type::feature", fix = "type::fix" }
