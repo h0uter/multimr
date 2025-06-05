@@ -606,14 +606,7 @@ impl MergeRequest {
             }
         }
 
-        let current_branch_output = std::process::Command::new("git")
-            .arg("branch")
-            .arg("--show-current")
-            .output()
-            .expect("Failed to get current branch");
-        let current_branch = String::from_utf8_lossy(&current_branch_output.stdout)
-            .trim()
-            .to_string();
+        let current_branch = get_current_branch();
 
         cmd.arg("--title").arg(&self.title);
         cmd.arg("--description").arg(&self.description);
@@ -670,6 +663,18 @@ impl MergeRequest {
             eprintln!("No command to dry run. Please create the MR first.");
         }
     }
+}
+
+fn get_current_branch() -> String {
+    let current_branch_output = std::process::Command::new("git")
+        .arg("branch")
+        .arg("--show-current")
+        .output()
+        .expect("Failed to get current branch");
+
+    String::from_utf8_lossy(&current_branch_output.stdout)
+        .trim()
+        .to_string()
 }
 
 fn load_config_from_toml() -> Config {
