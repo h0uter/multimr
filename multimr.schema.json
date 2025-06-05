@@ -1,31 +1,37 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "multimr.toml schema",
-  "type": "object",
-  "properties": {
-    "reviewers": {
-      "type": "array",
-      "items": { "type": "string" },
-      "description": "List of possible reviewers by their Gitlab usernames (e.g. `first.last-company`)."
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "multimr.toml schema",
+    "type": "object",
+    "properties": {
+        "reviewers": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "List of possible reviewers by their Gitlab usernames (e.g. `first.last-company`)."
+        },
+        "labels": {
+            "type": "object",
+            "properties": {
+                "feat": {
+                    "type": "string"
+                },
+                "fix": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "description": "Label mappings to associate with the MR/PRs created. The keys are the label names, and the values are the corresponding Gitlab label names."
+        },
+        "working_dir": {
+            "type": "string",
+            "description": "Working directory, can be a relative path or an absolute path. If not set, the current working directory will be used."
+        },
+        "assignee": {
+            "type": "string",
+            "description": "Default assignee for the MR/PRs created."
+        }
     },
-    "labels": {
-      "type": "object",
-      "properties": {
-        "feat": { "type": "string" },
-        "fix": { "type": "string" }
-      },
-      "additionalProperties": false,
-      "description": "Label mappings to associate with the MR/PRs created. The keys are the label names, and the values are the corresponding Gitlab label names."
-    },
-    "working_dir": {
-      "type": "string",
-      "description": "Working directory, can be a relative path or an absolute path. If not set, the current working directory will be used."
-    },
-    "assignee": {
-      "type": "string",
-      "description": "Default assignee for the MR/PRs created."
-    }
-  },
-  "required": [],
-  "additionalProperties": false
+    "required": [],
+    "additionalProperties": false
 }
