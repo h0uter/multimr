@@ -141,7 +141,7 @@ impl App {
     }
 
     fn render_repo_selection(&mut self, frame: &mut Frame) {
-        let title = Line::from("Mutli MR").bold().blue().centered();
+        let title = Line::from("Multi MR").bold().blue().centered();
         let items: Vec<ListItem> = self
             .dirs
             .iter()
