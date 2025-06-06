@@ -1,3 +1,5 @@
+use std::{env, io, process};
+
 use color_eyre::Result;
 
 use super::utils;
@@ -16,8 +18,8 @@ pub struct MergeRequest {
 impl MergeRequest {
     /// Construct a command to create a merge request for the cwd repo using the `glab` CLI.
     /// If the current branch is main or master, create a new branch
-    pub(crate) fn create(&self) -> std::process::Command {
-        let mut cmd = std::process::Command::new("glab");
+    pub(crate) fn create(&self) -> process::Command {
+        let mut cmd = process::Command::new("glab");
         cmd.arg("mr").arg("create");
 
         if let Some(assignee) = &self.assignee {
@@ -46,7 +48,7 @@ impl MergeRequest {
 
             println!();
 
-            std::process::Command::new("git")
+            process::Command::new("git")
                 .arg("switch")
                 .arg("-c")
                 .arg(self.title.replace(' ', "-"))
@@ -55,21 +57,21 @@ impl MergeRequest {
 
             println!();
 
-            std::process::Command::new("git")
+            process::Command::new("git")
                 .arg("add")
                 .arg(".")
                 .status()
                 .expect("Failed to add changes");
 
-            std::process::Command::new("git")
+            process::Command::new("git")
                 .arg("commit")
                 .arg("-am")
                 .arg(&self.title)
                 .status()
-                .or_else(|_e| -> Result<std::process::ExitStatus, std::io::Error> {
+                .or_else(|_e| -> Result<process::ExitStatus, io::Error> {
                     // Retry once if adding and committing fails, this might happen if the pre-commit hook formats the code
                     // TODO: test this.
-                    std::process::Command::new("git")
+                    process::Command::new("git")
                         .arg("add")
                         .arg(".")
                         .status()
@@ -77,7 +79,7 @@ impl MergeRequest {
 
                     println!();
 
-                    let status = std::process::Command::new("git")
+                    let status = process::Command::new("git")
                         .arg("commit")
                         .arg("-am")
                         .arg(&self.title)
@@ -98,7 +100,7 @@ impl MergeRequest {
     }
 
     /// Run the command to create the merge request.
-    pub(crate) fn run(&self, mut cmd: std::process::Command) {
+    pub(crate) fn run(&self, mut cmd: process::Command) {
         let status = cmd.status().expect("Failed to execute command");
         if !status.success() {
             eprintln!("Failed to create merge request: {:?}", status);
@@ -108,10 +110,10 @@ impl MergeRequest {
     }
 
     /// Print the command that would be run, useful for dry runs.
-    pub(crate) fn dry_run(&self, cmd: std::process::Command) {
+    pub(crate) fn dry_run(&self, cmd: process::Command) {
         println!(
             "Current directory: {}",
-            std::env::current_dir().unwrap().display()
+            env::current_dir().unwrap().display()
         );
 
         println!("Dry run command: {:?}", cmd);
