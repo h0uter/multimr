@@ -3,6 +3,7 @@
 ## TODO's
 
 - [ ] make a list of UI/UX improvements: 20mins
+- [ ] Write a readme with a description of the project, how to install it, how to use it, and how to contribute: 20mins
 
 ## Features
 
