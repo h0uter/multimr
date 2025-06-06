@@ -166,13 +166,3 @@ fn test_app_new_with_dry_run() {
     let app = App::new(true);
     assert!(app.dry_run);
 }
-
-#[test]
-fn test_app_run_returns_self() {
-    // This test is a placeholder, as running the TUI is not practical in tests
-    // let app = App::new(true);
-    // let terminal = ratatui::init();
-    // let result = app.run(terminal);
-    // assert!(result.is_ok());
-    assert!(true);
-}
