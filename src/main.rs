@@ -139,7 +139,11 @@ impl App {
         .areas(frame.area());
 
         // Outer block for the whole screen (except help)
-        let outer_block = Block::bordered().title(create_title(self.screen.title()));
+        let title = Line::from(format!("Multi MR - {}", self.screen.title()))
+            .bold()
+            .blue()
+            .centered();
+        let outer_block = Block::bordered().title(title);
 
         // Layout inside the box: dirs, title input, desc input, label select
         let inner_area = outer_block.inner(window);
@@ -554,13 +558,6 @@ impl App {
     fn quit(&mut self) {
         self.running = false;
     }
-}
-
-fn create_title(text: &str) -> Line<'static> {
-    Line::from(format!("Multi MR - {}", text))
-        .bold()
-        .blue()
-        .centered()
 }
 
 pub struct MergeRequest {
