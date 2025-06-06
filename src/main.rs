@@ -270,11 +270,9 @@ impl App {
             .collect();
 
         List::new(label_items)
-            .block(Block::bordered().title("Label"))
+            .block(Block::bordered().title("Gitlab Label"))
             .render(label_input_area, frame.buffer_mut());
 
-        // No additional code needed here for now.
-        // Help bar at the very bottom, outside the box
         Paragraph::new(self.screen.help())
             .centered()
             .style(Style::default().fg(Color::DarkGray))
@@ -282,7 +280,9 @@ impl App {
     }
 
     fn render_reviewer_selection(&mut self, frame: &mut Frame) {
-        let title = create_title("Reviewer Selection");
+        let [list_area, help_area] =
+            Layout::vertical([Constraint::Min(1), Constraint::Length(1)]).areas(frame.area());
+
         let items: Vec<ListItem> = self
             .cfg
             .reviewers
@@ -301,22 +301,15 @@ impl App {
                 item
             })
             .collect();
-        let list = List::new(items).block(Block::bordered().title(title));
-        let layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Min(1),
-                Constraint::Length(1),
-                Constraint::Length(1),
-            ])
-            .split(frame.area());
-        frame.render_widget(list, layout[0]);
-        let desc = Paragraph::new("Select reviewers for the MR").centered();
-        frame.render_widget(desc, layout[1]);
-        let help = Paragraph::new(self.screen.help())
+        
+        List::new(items)
+            .block(Block::bordered().title(create_title("Reviewer Selection")))
+            .render(list_area, frame.buffer_mut());
+
+        Paragraph::new(self.screen.help())
             .centered()
-            .style(Style::default().fg(Color::DarkGray));
-        frame.render_widget(help, layout[2]);
+            .style(Style::default().fg(Color::DarkGray))
+            .render(help_area, frame.buffer_mut());
     }
 
     fn render_overview(&mut self, frame: &mut Frame) {
