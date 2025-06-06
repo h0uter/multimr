@@ -1,5 +1,5 @@
-use std::collections::HashSet;
 use std::fs;
+use std::{collections::HashSet, process::Stdio};
 
 use color_eyre::Result;
 
@@ -125,6 +125,7 @@ impl App {
                     .arg("rev-parse")
                     .arg("--is-inside-work-tree")
                     .current_dir(app.config.working_dir.join(dir))
+                    .stdout(Stdio::null())
                     .status()
                     .is_ok()
                 {
