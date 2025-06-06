@@ -1,7 +1,7 @@
-use serde::Deserialize;
+use std::collections::HashMap;
 use std::path::PathBuf;
 
-use std::collections::HashMap;
+use serde::Deserialize;
 
 pub(crate) const CONFIG_FILE: &str = "multimr.toml";
 pub(crate) const DEFAULT_BRANCHES: [&str; 2] = ["main", "master"];
