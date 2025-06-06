@@ -113,12 +113,6 @@ fn test_ensure_glab_installed_does_not_panic() {
     let _ = std::panic::catch_unwind(utils::ensure_glab_installed);
 }
 
-// #[test]
-// fn test_ensure_git_repo_does_not_panic() {
-//     // This will exit if not in a git repo, so just check it doesn't panic
-//     let _ = std::panic::catch_unwind(|| utils::ensure_git_repo());
-// }
-
 #[test]
 fn test_app_new_with_dry_run() {
     let app = App::new(Config {
