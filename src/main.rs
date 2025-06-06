@@ -182,6 +182,36 @@ impl App {
     }
 
     fn render_create_mr(&mut self, frame: &mut Frame) {
+        // TODO move this to global renderer function
+
+        // Split the screen: main box + help footer at the bottom
+        let [window, footer] = Layout::vertical([
+            Constraint::Min(0),    // main area for the box
+            Constraint::Length(1), // footer (help)
+        ])
+        .areas(frame.area());
+
+        // Outer block for the whole screen (except help)
+        let outer_block = Block::bordered().title(create_title("Describe"));
+
+        // Layout inside the box: dirs, title input, desc input, label select
+        let inner_area = outer_block.inner(window);
+        outer_block.render(window, frame.buffer_mut());
+        let [
+            dir_area,
+            title_input_area,
+            description_input_area,
+            label_input_area,
+        ] = Layout::vertical([
+            Constraint::Min(3),
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(5), // label box
+        ])
+        .areas(inner_area);
+
+        // Define the content for each area
+
         let selected_dirs: Vec<&String> = self
             .selected_repos
             .iter()
@@ -199,54 +229,26 @@ impl App {
                 .join("\n")
         };
 
-        // Split the screen: main box + help bar at the bottom
-        let title = create_title("Describe");
-
-        let main_layout = Layout::vertical([
-            Constraint::Min(0),    // main area for the box
-            Constraint::Length(1), // help bar
-        ])
-        .split(frame.area());
-
-        // Outer block for the whole screen (except help)
-        let outer_block = Block::bordered().title(title);
-        let inner_area = outer_block.inner(main_layout[0]);
-        frame.render_widget(outer_block, main_layout[0]);
-
-        // Layout inside the box: dirs, title input, desc input, label select
-        let [
-            dir_area,
-            title_input_area,
-            description_input_area,
-            label_input_area,
-        ] = Layout::vertical([
-            Constraint::Min(3),
-            Constraint::Length(3),
-            Constraint::Length(3),
-            Constraint::Length(5), // label box
-        ])
-        .areas(inner_area);
-
         Paragraph::new(format!("Repositories:\n{}", dirs_text))
             .render(dir_area, frame.buffer_mut());
 
-        let title_input = if self.input_focus == InputFocus::Title {
-            Paragraph::new(self.mr_title.as_str())
-                .style(Style::default().bg(Color::Blue).fg(Color::White))
-                .block(Block::bordered().title("Title"))
-        } else {
-            Paragraph::new(self.mr_title.as_str()).block(Block::bordered().title("Title"))
-        };
-        title_input.render(title_input_area, frame.buffer_mut());
+        Paragraph::new(self.mr_title.as_str())
+            .style(if self.input_focus == InputFocus::Title {
+                Style::default().bg(Color::Blue).fg(Color::White)
+            } else {
+                Style::default()
+            })
+            .block(Block::bordered().title("Title"))
+            .render(title_input_area, frame.buffer_mut());
 
-        let desc_input = if self.input_focus == InputFocus::Description {
-            Paragraph::new(self.mr_description.as_str())
-                .style(Style::default().bg(Color::Blue).fg(Color::White))
-                .block(Block::bordered().title("Description"))
-        } else {
-            Paragraph::new(self.mr_description.as_str())
-                .block(Block::bordered().title("Description"))
-        };
+        Paragraph::new(self.mr_description.as_str())
+            .style(if self.input_focus == InputFocus::Description {
+                Style::default().bg(Color::Blue).fg(Color::White)
+            } else {
+                Style::default()
+            })
+            .block(Block::bordered().title("Description"))
+            .render(description_input_area, frame.buffer_mut());
 
         // Label selection box
         let label_items: Vec<ListItem> = self
@@ -260,8 +262,7 @@ impl App {
                 } else {
                     "( )"
                 };
-                let line = format!("{} {}: {}", marker, k, v);
-                let mut item = ListItem::new(line);
+                let mut item = ListItem::new(format!("{} {}: {}", marker, k, v));
                 if self.input_focus == InputFocus::Label && i == self.selected_label {
                     item = item.style(Style::default().fg(Color::Yellow).bg(Color::Blue));
                 } else if i == self.selected_label {
@@ -271,16 +272,16 @@ impl App {
             })
             .collect();
 
-        let glab_label_list = List::new(label_items).block(Block::bordered().title("Label"));
+        List::new(label_items)
+            .block(Block::bordered().title("Label"))
+            .render(label_input_area, frame.buffer_mut());
 
-        frame.render_widget(desc_input, description_input_area);
-        frame.render_widget(glab_label_list, label_input_area);
         // No additional code needed here for now.
         // Help bar at the very bottom, outside the box
-        let help = Paragraph::new(self.screen.help())
+        Paragraph::new(self.screen.help())
             .centered()
-            .style(Style::default().fg(Color::DarkGray));
-        frame.render_widget(help, main_layout[1]);
+            .style(Style::default().fg(Color::DarkGray))
+            .render(footer, frame.buffer_mut());
     }
 
     fn render_reviewer_selection(&mut self, frame: &mut Frame) {
