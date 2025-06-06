@@ -210,8 +210,6 @@ impl App {
         ])
         .areas(window);
 
-        // Define the content for each area
-
         let selected_dirs: Vec<&String> = self
             .selected_repos
             .iter()
