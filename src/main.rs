@@ -116,7 +116,7 @@ enum InputFocus {
 impl App {
     pub fn new() -> Self {
         let dry_run = env::var("DRY_RUN")
-            .unwrap_or("true".to_string())
+            .unwrap_or("false".to_string())
             .to_lowercase()
             == "true";
 
