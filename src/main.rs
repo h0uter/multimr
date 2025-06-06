@@ -1,6 +1,7 @@
 use color_eyre::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-use ratatui::layout::{Constraint, Direction, Layout};
+use ratatui::buffer::Buffer;
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Style};
 use ratatui::widgets::{Block, List, ListItem, Paragraph, Widget};
 use ratatui::{DefaultTerminal, Frame, style::Stylize, text::Line};
@@ -37,6 +38,15 @@ impl Screen {
             Screen::CreateMR => "Tab: Switch field  ↑/↓: Select Label  Enter: Next  Esc: Back",
             Screen::ReviewerSelection => "↑/↓: Move  Space: Select  Enter: Finish  Esc: Back",
             Screen::Finalize => "y: Confirm  n: Back",
+        }
+    }
+
+    fn title(&self) -> &'static str {
+        match self {
+            Screen::RepoSelection => "Repository Selection",
+            Screen::CreateMR => "Describe",
+            Screen::ReviewerSelection => "Reviewer Selection",
+            Screen::Finalize => "Finalization",
         }
     }
 }
@@ -126,21 +136,41 @@ impl App {
 
     /// Renders the user interface.
     fn render(&mut self, frame: &mut Frame) {
-        match self.screen {
-            Screen::RepoSelection => self.render_repo_selection(frame),
-            Screen::CreateMR => self.render_create_mr(frame),
-            Screen::ReviewerSelection => self.render_reviewer_selection(frame),
-            Screen::Finalize => self.render_overview(frame),
-        }
-    }
-
-    fn render_repo_selection(&mut self, frame: &mut Frame) {
-        let [repo_list_area, dir_info_area, help_area] = Layout::vertical([
-            Constraint::Min(3),
-            Constraint::Length(1), // for key help bar
-            Constraint::Length(1), // for directory info
+        // Split the screen: main box + help footer at the bottom
+        let [window, footer] = Layout::vertical([
+            Constraint::Min(0),    // main area for the box
+            Constraint::Length(1), // footer (help)
         ])
         .areas(frame.area());
+
+        // Outer block for the whole screen (except help)
+        let outer_block = Block::bordered().title(create_title(self.screen.title()));
+
+        // Layout inside the box: dirs, title input, desc input, label select
+        let inner_area = outer_block.inner(window);
+
+        match self.screen {
+            Screen::RepoSelection => self.render_repo_selection(inner_area, frame.buffer_mut()),
+            Screen::CreateMR => self.render_create_mr(inner_area, frame.buffer_mut()),
+            Screen::ReviewerSelection => {
+                self.render_reviewer_selection(inner_area, frame.buffer_mut())
+            }
+            Screen::Finalize => self.render_overview(inner_area, frame.buffer_mut()),
+        }
+
+        outer_block.render(window, frame.buffer_mut());
+        Paragraph::new(self.screen.help())
+            .centered()
+            .style(Style::default().fg(Color::DarkGray))
+            .render(footer, frame.buffer_mut());
+    }
+
+    fn render_repo_selection(&mut self, window: Rect, buf: &mut Buffer) {
+        let [repo_list_area, dir_info_area] = Layout::vertical([
+            Constraint::Min(3),
+            Constraint::Length(1), // for directory info
+        ])
+        .areas(window);
 
         let repos: Vec<ListItem> = self
             .dirs
@@ -160,9 +190,7 @@ impl App {
             })
             .collect();
 
-        List::new(repos)
-            .block(Block::bordered().title(create_title("Repository Selection")))
-            .render(repo_list_area, frame.buffer_mut());
+        List::new(repos).render(repo_list_area, buf);
 
         Paragraph::new(format!(
             "Current directory: {} (Selected: {})",
@@ -170,30 +198,10 @@ impl App {
             self.selected_repos.len()
         ))
         .centered()
-        .render(dir_info_area, frame.buffer_mut());
-
-        Paragraph::new(self.screen.help())
-            .centered()
-            .style(Style::default().fg(Color::DarkGray))
-            .render(help_area, frame.buffer_mut());
+        .render(dir_info_area, buf);
     }
 
-    fn render_create_mr(&mut self, frame: &mut Frame) {
-        // TODO move this to global renderer function
-
-        // Split the screen: main box + help footer at the bottom
-        let [window, footer] = Layout::vertical([
-            Constraint::Min(0),    // main area for the box
-            Constraint::Length(1), // footer (help)
-        ])
-        .areas(frame.area());
-
-        // Outer block for the whole screen (except help)
-        let outer_block = Block::bordered().title(create_title("Describe"));
-
-        // Layout inside the box: dirs, title input, desc input, label select
-        let inner_area = outer_block.inner(window);
-        outer_block.render(window, frame.buffer_mut());
+    fn render_create_mr(&mut self, window: Rect, buf: &mut Buffer) {
         let [
             dir_area,
             title_input_area,
@@ -205,7 +213,7 @@ impl App {
             Constraint::Length(3),
             Constraint::Length(5), // label box
         ])
-        .areas(inner_area);
+        .areas(window);
 
         // Define the content for each area
 
@@ -226,8 +234,7 @@ impl App {
                 .join("\n")
         };
 
-        Paragraph::new(format!("Repositories:\n{}", dirs_text))
-            .render(dir_area, frame.buffer_mut());
+        Paragraph::new(format!("Repositories:\n{}", dirs_text)).render(dir_area, buf);
 
         Paragraph::new(self.mr_title.as_str())
             .style(if self.input_focus == InputFocus::Title {
@@ -236,7 +243,7 @@ impl App {
                 Style::default()
             })
             .block(Block::bordered().title("Title"))
-            .render(title_input_area, frame.buffer_mut());
+            .render(title_input_area, buf);
 
         Paragraph::new(self.mr_description.as_str())
             .style(if self.input_focus == InputFocus::Description {
@@ -245,7 +252,7 @@ impl App {
                 Style::default()
             })
             .block(Block::bordered().title("Description"))
-            .render(description_input_area, frame.buffer_mut());
+            .render(description_input_area, buf);
 
         // Label selection box
         let label_items: Vec<ListItem> = self
@@ -271,17 +278,11 @@ impl App {
 
         List::new(label_items)
             .block(Block::bordered().title("Gitlab Label"))
-            .render(label_input_area, frame.buffer_mut());
-
-        Paragraph::new(self.screen.help())
-            .centered()
-            .style(Style::default().fg(Color::DarkGray))
-            .render(footer, frame.buffer_mut());
+            .render(label_input_area, buf);
     }
 
-    fn render_reviewer_selection(&mut self, frame: &mut Frame) {
-        let [list_area, help_area] =
-            Layout::vertical([Constraint::Min(1), Constraint::Length(1)]).areas(frame.area());
+    fn render_reviewer_selection(&mut self, window: Rect, buf: &mut Buffer) {
+        let [list_area] = Layout::vertical([Constraint::Min(1)]).areas(window);
 
         let items: Vec<ListItem> = self
             .cfg
@@ -301,18 +302,11 @@ impl App {
                 item
             })
             .collect();
-        
-        List::new(items)
-            .block(Block::bordered().title(create_title("Reviewer Selection")))
-            .render(list_area, frame.buffer_mut());
 
-        Paragraph::new(self.screen.help())
-            .centered()
-            .style(Style::default().fg(Color::DarkGray))
-            .render(help_area, frame.buffer_mut());
+        List::new(items).render(list_area, buf);
     }
 
-    fn render_overview(&mut self, frame: &mut Frame) {
+    fn render_overview(&mut self, window: Rect, buf: &mut Buffer) {
         let selected_dirs: Vec<&String> = self
             .selected_repos
             .iter()
@@ -325,6 +319,7 @@ impl App {
             .copied()
             .filter_map(|i| self.cfg.reviewers.get(i))
             .collect();
+
         let dirs_text = if selected_dirs.is_empty() {
             "No repositories selected".to_string()
         } else {
@@ -334,6 +329,7 @@ impl App {
                 .collect::<Vec<_>>()
                 .join(", ")
         };
+
         let reviewers_text = if selected_reviewers.is_empty() {
             "No reviewers selected".to_string()
         } else {
@@ -343,25 +339,13 @@ impl App {
                 .collect::<Vec<_>>()
                 .join(", ")
         };
-        let layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Min(1), Constraint::Length(1)])
-            .split(frame.area());
+
+        let [overview_area] = Layout::vertical([Constraint::Min(1)]).areas(window);
 
         Paragraph::new(format!(
             "Overview\n\nRepositories: {}\nTitle: {}\nDescription: {}\nReviewers: {}\n\nPress 'y' to confirm, 'n' to go back.",
             dirs_text, self.mr_title, self.mr_description, reviewers_text
-        )).render(layout[0], frame.buffer_mut());
-
-        let help = self.create_help_text();
-        frame.render_widget(help, layout[1]);
-    }
-
-    fn create_help_text(&mut self) -> Paragraph<'_> {
-        let help = Paragraph::new(self.screen.help())
-            .centered()
-            .style(Style::default().fg(Color::DarkGray));
-        help
+        )).render(overview_area, buf);
     }
 
     /// Reads the crossterm events and updates the state of [`App`].
