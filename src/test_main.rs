@@ -1,5 +1,6 @@
 //! Tests for the Multi MR application
 
+use crate::config::Config;
 use crate::*;
 use std::path::PathBuf;
 
@@ -62,7 +63,7 @@ fn test_input_focus_default() {
 
 #[test]
 fn test_merge_request_fields() {
-    let mr = MergeRequest {
+    let mr = merge_request::MergeRequest {
         title: "Test".to_string(),
         description: "Desc".to_string(),
         reviewers: vec!["alice".to_string()],
@@ -108,7 +109,7 @@ fn test_app_selected_reviewers_toggle() {
 
 #[test]
 fn test_merge_request_create_command() {
-    let mr = MergeRequest {
+    let mr = merge_request::MergeRequest {
         title: "TestTitle".to_string(),
         description: "TestDesc".to_string(),
         reviewers: vec!["alice".to_string()],
@@ -126,7 +127,7 @@ fn test_merge_request_create_command() {
 
 #[test]
 fn test_merge_request_dry_run_prints() {
-    let mr = MergeRequest {
+    let mr = merge_request::MergeRequest {
         title: "DryRun".to_string(),
         description: "Desc".to_string(),
         reviewers: vec![],
@@ -139,26 +140,26 @@ fn test_merge_request_dry_run_prints() {
 
 #[test]
 fn test_get_current_branch_returns_string() {
-    let branch = get_current_branch();
+    let branch = utils::get_current_branch();
     assert!(branch.is_ascii());
 }
 
 #[test]
 fn test_load_config_from_toml_returns_config() {
-    let cfg = load_config_from_toml();
+    let cfg = config::load_config_from_toml();
     assert!(cfg.assignee.is_ascii() || cfg.assignee.is_empty());
 }
 
 #[test]
 fn test_ensure_glab_installed_does_not_panic() {
     // This will exit if glab is not installed, so just check it doesn't panic
-    let _ = std::panic::catch_unwind(|| ensure_glab_installed());
+    let _ = std::panic::catch_unwind(|| utils::ensure_glab_installed());
 }
 
 #[test]
 fn test_ensure_git_repo_does_not_panic() {
     // This will exit if not in a git repo, so just check it doesn't panic
-    let _ = std::panic::catch_unwind(|| ensure_git_repo());
+    let _ = std::panic::catch_unwind(|| utils::ensure_git_repo());
 }
 
 #[test]

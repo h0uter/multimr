@@ -6,10 +6,12 @@ use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Style};
 use ratatui::widgets::{Block, List, ListItem, Paragraph, Widget};
 use ratatui::{DefaultTerminal, Frame, style::Stylize, text::Line};
-use serde::Deserialize;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::fs;
-use std::path::PathBuf;
+
+mod config;
+mod merge_request;
+mod utils;
 
 const CONFIG_FILE: &str = "multimr.toml";
 const DEFAULT_BRANCHES: [&str; 2] = ["main", "master"];
@@ -26,7 +28,7 @@ struct Cli {
 fn main() -> color_eyre::Result<()> {
     let cli = Cli::parse();
 
-    ensure_glab_installed();
+    utils::ensure_glab_installed();
 
     // The interactive TUI app
     color_eyre::install()?;
@@ -100,20 +102,11 @@ impl Screen {
     }
 }
 
-/// Configuration for the application, loaded from a `multimr.toml` file.
-#[derive(Debug, Default)]
-pub struct Config {
-    pub working_dir: PathBuf,
-    pub reviewers: Vec<String>,
-    pub labels: HashMap<String, String>,
-    pub assignee: String,
-}
-
 /// The main application which holds the state and logic of the application.
 #[derive(Debug, Default)]
 pub struct App {
     /// Configuration loaded from `multimr.toml`
-    cfg: Config,
+    cfg: config::Config,
     /// Is the application running?
     running: bool,
     /// List of directories in the current working directory.
@@ -146,7 +139,7 @@ pub struct App {
 
     // TODO: move this out of here
     /// The merge request that is created at the end of the process
-    mr: Option<MergeRequest>,
+    mr: Option<merge_request::MergeRequest>,
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -166,7 +159,7 @@ impl App {
             ..Default::default()
         };
 
-        let cfg = load_config_from_toml();
+        let cfg = config::load_config_from_toml();
         app.cfg = cfg;
 
         // Populate dirs with all directories in the current working directory
@@ -585,7 +578,7 @@ impl App {
     fn on_key_event_overview(&mut self, key: KeyEvent) {
         match key.code {
             KeyCode::Char('y') | KeyCode::Enter => {
-                self.mr = Some(MergeRequest {
+                self.mr = Some(merge_request::MergeRequest {
                     title: self.mr_title.clone(),
                     description: self.mr_description.clone(),
                     reviewers: self
@@ -620,221 +613,6 @@ impl App {
     fn quit_completed(&mut self) {
         self.user_input_completed = true;
         self.running = false;
-    }
-}
-
-/// Represents a merge request to be created.
-#[derive(Debug)]
-pub struct MergeRequest {
-    title: String,
-    description: String,
-    reviewers: Vec<String>,
-    labels: Vec<String>,
-    assignee: String,
-}
-
-impl MergeRequest {
-    // fn dummy_create(&mut self) -> std::process::Command {
-    //     let mut cmd = std::process::Command::new("sh");
-    //     cmd.arg("-c").arg(format!(
-    //         "terminal-notifier -sound default -title 'Created MR: {}' -message '{}'",
-    //         self.title, self.description,
-    //     ));
-
-    //     cmd
-    // }
-
-    /// Construct a command to create a merge request for the cwd repo using the `glab` CLI.
-    /// If the current branch is main or master, create a new branch
-    fn create(&self) -> std::process::Command {
-        let mut cmd = std::process::Command::new("glab");
-        cmd.arg("mr")
-            .arg("create")
-            .arg("--assignee")
-            .arg(&self.assignee);
-
-        if !self.reviewers.is_empty() {
-            for reviewer in &self.reviewers {
-                cmd.arg("--reviewer").arg(reviewer);
-            }
-        }
-
-        if !self.labels.is_empty() {
-            for label in &self.labels {
-                cmd.arg("--label").arg(label);
-            }
-        }
-
-        let current_branch = get_current_branch();
-
-        cmd.arg("--title").arg(&self.title);
-        cmd.arg("--description").arg(&self.description);
-
-        if DEFAULT_BRANCHES.contains(&current_branch.as_str()) {
-            // If the current branch is main or master, create a new branch
-
-            println!();
-
-            std::process::Command::new("git")
-                .arg("switch")
-                .arg("-c")
-                .arg(self.title.replace(' ', "-"))
-                .status()
-                .expect("Failed to create new branch");
-
-            println!();
-
-            std::process::Command::new("git")
-                .arg("add")
-                .arg(".")
-                .status()
-                .expect("Failed to add changes");
-
-            std::process::Command::new("git")
-                .arg("commit")
-                .arg("-am")
-                .arg(&self.title)
-                .status()
-                .or_else(|_e| -> Result<std::process::ExitStatus, std::io::Error> {
-                    // Retry once if adding and committing fails, this might happen if the pre-commit hook formats the code
-                    // TODO: test this.
-                    std::process::Command::new("git")
-                        .arg("add")
-                        .arg(".")
-                        .status()
-                        .expect("Failed to add changes Second attempt");
-
-                    println!();
-
-                    let status = std::process::Command::new("git")
-                        .arg("commit")
-                        .arg("-am")
-                        .arg(&self.title)
-                        .status()
-                        .expect("Failed to commit changes second attempt");
-
-                    Ok(status)
-                })
-                .expect("Failed to commit changes twice.");
-
-            cmd.arg("--push");
-        } else {
-            // If not, just use the current branch
-            cmd.arg("--yes");
-        }
-
-        cmd
-    }
-
-    /// Run the command to create the merge request.
-    fn run(&self, mut cmd: std::process::Command) {
-        let status = cmd.status().expect("Failed to execute command");
-        if !status.success() {
-            eprintln!("Failed to create merge request: {:?}", status);
-        } else {
-            println!("Merge request created successfully.");
-        }
-    }
-
-    /// Print the command that would be run, useful for dry runs.
-    fn dry_run(&self, cmd: std::process::Command) {
-        println!(
-            "Current directory: {}",
-            std::env::current_dir().unwrap().display()
-        );
-
-        println!("Dry run command: {:?}", cmd);
-    }
-}
-
-/// Getting the current branch is needed to determine if a new branch should be created for the merge request.
-fn get_current_branch() -> String {
-    let current_branch_output = std::process::Command::new("git")
-        .arg("branch")
-        .arg("--show-current")
-        .output()
-        .expect("Failed to get current branch");
-
-    String::from_utf8_lossy(&current_branch_output.stdout)
-        .trim()
-        .to_string()
-}
-
-/// User configuration is loaded from a `multimr.toml` file in the current working directory.
-fn load_config_from_toml() -> Config {
-    let content = std::fs::read_to_string(CONFIG_FILE).unwrap_or_default();
-
-    #[derive(Deserialize)]
-    struct ConfigToml {
-        reviewers: Option<Vec<String>>,
-        labels: Option<HashMap<String, String>>,
-        working_dir: Option<String>,
-        assignee: Option<String>,
-    }
-
-    // if the entire parsing fails return a config with None values
-    let parsed: ConfigToml = toml::from_str(&content).unwrap_or(ConfigToml {
-        reviewers: None,
-        labels: None,
-        working_dir: None,
-        assignee: None,
-    });
-
-    // check if a root is specified in toml, if not use current directory
-    let working_dir_str = parsed.working_dir.unwrap_or(".".to_string());
-
-    // there is a root, now create a PathBuf
-    let working_dir = if working_dir_str.starts_with('/') || working_dir_str.starts_with('\\') {
-        // root // absolute path
-        PathBuf::from(&working_dir_str)
-            .canonicalize()
-            .expect("Failed to resolve absolute path")
-    } else {
-        // working dir is specified as relative path
-        std::env::current_dir()
-            .unwrap_or_else(|_| PathBuf::from("."))
-            .join(working_dir_str)
-            .canonicalize()
-            .expect("Failed to resolve relative path")
-    };
-
-    // if individual fields fail, we use default values
-    Config {
-        working_dir,
-        reviewers: parsed.reviewers.unwrap_or_default(),
-        labels: parsed
-            .labels
-            .map(|m| m.into_iter().collect())
-            .unwrap_or_default(),
-        assignee: parsed.assignee.expect("Assignee is required"),
-    }
-}
-
-/// Ensure that the `glab` CLI is installed, since it's essential for running multimr.
-fn ensure_glab_installed() {
-    if std::process::Command::new("glab")
-        .arg("--version")
-        .output()
-        .is_err()
-    {
-        eprintln!(
-            "[Error] Gitlab CLI `glab` is not installed. Please install it to use this application."
-        );
-        std::process::exit(1);
-    }
-}
-
-fn ensure_git_repo() {
-    if std::process::Command::new("git")
-        .arg("rev-parse")
-        .arg("--is-inside-work-tree")
-        .output()
-        .is_err()
-    {
-        eprintln!(
-            "[Error] This is not a git repository. Please run this application inside a git repository."
-        );
-        std::process::exit(1);
     }
 }
 
