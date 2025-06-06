@@ -2,6 +2,7 @@ use color_eyre::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::{Color, Style};
+use ratatui::widgets::block::title;
 use ratatui::widgets::{Block, List, ListItem, Paragraph};
 use ratatui::{DefaultTerminal, Frame, style::Stylize, text::Line};
 use serde::Deserialize;
@@ -180,6 +181,7 @@ impl App {
     }
 
     fn render_create_mr(&mut self, frame: &mut Frame) {
+        use ratatui::widgets::Block;
         let selected_dirs: Vec<&String> = self
             .selected_repos
             .iter()
@@ -195,8 +197,12 @@ impl App {
                 .collect::<Vec<_>>()
                 .join("\n")
         };
-        let title =
-            Paragraph::new("Create Merge Request").style(Style::default().fg(Color::Blue).bold());
+        // Outer block for the whole screen
+        let title = Line::from("Multi MR - Create").bold().blue().centered();
+        let outer_block = Block::bordered().title(title);
+        let area = frame.area();
+        let inner_area = outer_block.inner(area);
+        frame.render_widget(outer_block, area);
         let dirs = Paragraph::new(format!("Repositories:\n{}", dirs_text));
         let title_input = if self.input_focus == InputFocus::Title {
             Paragraph::new(self.mr_title.as_str())
@@ -240,23 +246,21 @@ impl App {
         let layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(1),
                 Constraint::Min(3),
                 Constraint::Length(3),
                 Constraint::Length(3),
                 Constraint::Length(5), // label box
                 Constraint::Length(1), // help
             ])
-            .split(frame.area());
-        frame.render_widget(title, layout[0]);
-        frame.render_widget(dirs, layout[1]);
-        frame.render_widget(title_input, layout[2]);
-        frame.render_widget(desc_input, layout[3]);
-        frame.render_widget(label_list, layout[4]);
+            .split(inner_area);
+        frame.render_widget(dirs, layout[0]);
+        frame.render_widget(title_input, layout[1]);
+        frame.render_widget(desc_input, layout[2]);
+        frame.render_widget(label_list, layout[3]);
         let help = Paragraph::new(self.screen.help())
             .centered()
             .style(Style::default().fg(Color::DarkGray));
-        frame.render_widget(help, layout[5]);
+        frame.render_widget(help, layout[4]);
     }
 
     fn render_reviewer_selection(&mut self, frame: &mut Frame) {
