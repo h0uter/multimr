@@ -1,3 +1,4 @@
+/// This is the main entry point for the Multi MR TUI application.
 use clap::Parser;
 
 mod app;

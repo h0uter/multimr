@@ -1,3 +1,4 @@
+/// This module handles loading the configuration for the multimr application.
 use std::collections::HashMap;
 use std::path::PathBuf;
 

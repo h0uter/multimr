@@ -1,3 +1,4 @@
+/// This module contains the main application logic and rendering for the Multi MR CLI tool.
 use std::fs;
 use std::{collections::HashSet, process::Stdio};
 
