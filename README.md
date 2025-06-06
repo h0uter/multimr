@@ -10,18 +10,19 @@
   - [x] Actually interface with the glab cli as backend.
     - [ ] Setup in such a way that we could also easilly switch to the gitlab native crate.
   - [x] add logic to automatically create branches in the src_repo's
-- [ ] place default user in `config.toml`, so it can be used to assign the MR.
-- [ ] add dry run command to test the workflow without actually creating branches or merge requests.
+- [x] place default user in `config.toml`, so it can be used to assign the MR.
+- [x] add dry run command to test the workflow without actually creating branches or merge requests.
 - [ ] vizualize the branches of the src_repo's
 - [ ] Introduce option to create MR's as draft
 - [ ] add related merge requests in description of the merge request
-- [ ] add some logic to handle a pre-commit hook that changes some files.
+- [x] add some logic to handle a pre-commit hook that changes some files.
+- [ ] setup the CLI so it can be used to overwrite the TOML config file.
 
 ## Fixes
 
-- [ ] currently `glab` output messes up the tui.
-  - [ ] find out what causes the output
-  - [ ] show the output in the tui window instead of the terminal or just close the tui and then run the commands afterwards.
+- [x] currently `glab` output messes up the tui.
+  - [x] find out what causes the output
+  - [x] show the output in the tui window instead of the terminal or just close the tui and then run the commands afterwards.
 
 ## Workflows
 
