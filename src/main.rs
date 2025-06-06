@@ -637,7 +637,7 @@ impl MergeRequest {
                 .status()
                 .or_else(|_e| -> Result<std::process::ExitStatus, std::io::Error> {
                     // Retry once if adding and committing fails, this might happen if the pre-commit hook formats the code
-
+                    // TODO: test this.
                     std::process::Command::new("git")
                         .arg("add")
                         .arg(".")
