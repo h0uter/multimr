@@ -135,7 +135,13 @@ impl App {
     }
 
     fn render_repo_selection(&mut self, frame: &mut Frame) {
-        let title = create_title("Repository Selection");
+        let [repo_list_area, dir_info_area, help_area] = Layout::vertical([
+            Constraint::Min(3),
+            Constraint::Length(1), // for key help bar
+            Constraint::Length(1), // for directory info
+        ])
+        .areas(frame.area());
+
         let repos: Vec<ListItem> = self
             .dirs
             .iter()
@@ -153,32 +159,23 @@ impl App {
                 item
             })
             .collect();
-        let repos_list = List::new(repos).block(Block::bordered().title(title));
 
-        let layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Min(3),
-                Constraint::Length(1), // for key help bar
-                Constraint::Length(1), // for directory info
-            ])
-            .split(frame.area());
+        List::new(repos)
+            .block(Block::bordered().title(create_title("Repository Selection")))
+            .render(repo_list_area, frame.buffer_mut());
 
-        frame.render_widget(repos_list, layout[0]);
-
-        let dir_info = Paragraph::new(format!(
+        Paragraph::new(format!(
             "Current directory: {} (Selected: {})",
             self.cfg.working_dir.display(),
             self.selected_repos.len()
         ))
-        .centered();
+        .centered()
+        .render(dir_info_area, frame.buffer_mut());
 
-        frame.render_widget(dir_info, layout[1]);
-
-        let help = Paragraph::new(self.screen.help())
+        Paragraph::new(self.screen.help())
             .centered()
-            .style(Style::default().fg(Color::DarkGray));
-        frame.render_widget(help, layout[2]);
+            .style(Style::default().fg(Color::DarkGray))
+            .render(help_area, frame.buffer_mut());
     }
 
     fn render_create_mr(&mut self, frame: &mut Frame) {
