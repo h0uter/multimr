@@ -3,21 +3,14 @@ use std::fs;
 
 use color_eyre::Result;
 
-use ratatui::DefaultTerminal;
-use ratatui::Frame;
-use ratatui::buffer::Buffer;
-use ratatui::layout::Constraint;
-use ratatui::layout::Layout;
-use ratatui::layout::Rect;
-use ratatui::style::Color;
-use ratatui::style::Style;
-use ratatui::style::Stylize;
-use ratatui::text::Line;
-use ratatui::widgets::Block;
-use ratatui::widgets::List;
-use ratatui::widgets::ListItem;
-use ratatui::widgets::Paragraph;
-use ratatui::widgets::Widget;
+use ratatui::{
+    DefaultTerminal, Frame,
+    buffer::Buffer,
+    layout::{Constraint, Layout, Rect},
+    style::{Color, Style, Stylize},
+    text::Line,
+    widgets::{Block, List, ListItem, Paragraph, Widget},
+};
 
 use crate::config::Config;
 use crate::merge_request;
