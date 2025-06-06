@@ -124,7 +124,7 @@ fn test_load_config_from_toml_returns_config() {
 #[test]
 fn test_ensure_glab_installed_does_not_panic() {
     // This will exit if glab is not installed, so just check it doesn't panic
-    let _ = std::panic::catch_unwind(|| utils::ensure_glab_installed());
+    let _ = std::panic::catch_unwind(utils::ensure_glab_installed);
 }
 
 // #[test]
