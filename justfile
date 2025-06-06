@@ -7,3 +7,6 @@ watch:
 # install the cli locally
 install:
     cargo install --path .
+
+run:
+    cargo run --bin mmr
