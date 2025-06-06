@@ -34,10 +34,10 @@ enum Screen {
 impl Screen {
     fn help(&self) -> &'static str {
         match self {
-            Screen::RepoSelection => "↑/↓: Move  Space: Select  Enter: Next  q/Esc: Quit",
-            Screen::CreateMR => "Tab: Switch field  ↑/↓: Select Label  Enter: Next  Esc: Back",
-            Screen::ReviewerSelection => "↑/↓: Move  Space: Select  Enter: Finish  Esc: Back",
-            Screen::Finalize => "y: Confirm  n: Back",
+            Screen::RepoSelection => "↑/↓/j/k: Move  Space: Select  Enter: Next  q/Esc: Quit",
+            Screen::CreateMR => "Tab: Switch field  ↑/↓/j/k: Select Label  Enter: Next  Esc: Back",
+            Screen::ReviewerSelection => "↑/↓/j/k: Move   Space:  Select  Enter: Next  Esc: Back",
+            Screen::Finalize => "y/Enter: Confirm  n/Esc: Back",
         }
     }
 
@@ -53,13 +53,9 @@ impl Screen {
 
 #[derive(Debug, Default)]
 pub struct Config {
-    /// The root directory for the repositories.
     pub working_dir: PathBuf,
-    /// List of reviewers.
     pub reviewers: Vec<String>,
-    /// List of labels.
-    pub labels: HashMap<String, String>, // (key, value)
-    /// Assignee for the merge request.
+    pub labels: HashMap<String, String>,
     pub assignee: String,
 }
 
@@ -96,7 +92,6 @@ enum InputFocus {
 }
 
 impl App {
-    /// Construct a new instance of [`App`].
     pub fn new() -> Self {
         let mut app = Self {
             selected_label: 0,
