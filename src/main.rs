@@ -208,16 +208,19 @@ impl App {
             Paragraph::new("Create Merge Request").style(Style::default().fg(Color::Blue).bold());
         let dirs = Paragraph::new(format!("Repositories:\n{}", dirs_text));
         let title_input = if self.input_focus == InputFocus::Title {
-            Paragraph::new(format!("Title: {}", self.mr_title))
+            Paragraph::new(self.mr_title.as_str())
                 .style(Style::default().bg(Color::Blue).fg(Color::White))
+                .block(Block::bordered().title("Title"))
         } else {
-            Paragraph::new(format!("Title: {}", self.mr_title))
+            Paragraph::new(self.mr_title.as_str()).block(Block::bordered().title("Title"))
         };
         let desc_input = if self.input_focus == InputFocus::Description {
-            Paragraph::new(format!("Description: {}", self.mr_description))
+            Paragraph::new(self.mr_description.as_str())
                 .style(Style::default().bg(Color::Blue).fg(Color::White))
+                .block(Block::bordered().title("Description"))
         } else {
-            Paragraph::new(format!("Description: {}", self.mr_description))
+            Paragraph::new(self.mr_description.as_str())
+                .block(Block::bordered().title("Description"))
         };
         // Label selection box
         let label_items: Vec<ListItem> = self
@@ -633,6 +636,8 @@ impl MergeRequest {
                 .arg(&self.title)
                 .status()
                 .expect("Failed to commit changes");
+
+            // TODO: add retry for when pre-commit hook makes some formatting changes
 
             cmd.arg("--push");
         } else {
