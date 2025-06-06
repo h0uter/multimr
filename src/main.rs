@@ -138,9 +138,9 @@ pub struct App {
 #[derive(Debug, Default, PartialEq, Eq)]
 enum InputFocus {
     #[default]
-    Label,
     Title,
     Description,
+    Label,
 }
 
 impl App {
