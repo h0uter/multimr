@@ -24,6 +24,8 @@
 - [x] currently `glab` output messes up the tui.
   - [x] find out what causes the output
   - [x] show the output in the tui window instead of the terminal or just close the tui and then run the commands afterwards.
+- [ ] if I cd into src_repos and run `mmr`, I get the error "Assignee is required" this is not very user friendly.
+
 
 ## Workflows
 
