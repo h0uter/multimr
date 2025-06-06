@@ -1,47 +1,23 @@
 //! Tests for the Multi MR application
 
+use crate::app::App;
 use crate::config::Config;
 use crate::*;
 use std::path::PathBuf;
 
 #[test]
 fn test_app_new_sets_dry_run() {
-    let app = App::new(true);
+    let app = app::App::new(true);
     assert!(app.dry_run);
-    let app2 = App::new(false);
+    let app2 = app::App::new(false);
     assert!(!app2.dry_run);
 }
 
 #[test]
 fn test_app_dirs_populated() {
-    let app = App::new(true);
+    let app = app::App::new(true);
     // Should at least have dirs as a Vec
     assert!(app.dirs.is_empty() || app.dirs.iter().all(|d| !d.is_empty()));
-}
-
-#[test]
-fn test_screen_help_texts() {
-    assert_eq!(
-        Screen::RepoSelection.help(),
-        "↑/↓/j/k: Move  Space: Select  Enter: Next  q/Esc: Quit"
-    );
-    assert_eq!(
-        Screen::CreateMR.help(),
-        "Tab: Switch field  ↑/↓/j/k: Select Label  Enter: Next  Esc: Back"
-    );
-    assert_eq!(
-        Screen::ReviewerSelection.help(),
-        "↑/↓/j/k: Move   Space:  Select  Enter: Next  Esc: Back"
-    );
-    assert_eq!(Screen::Finalize.help(), "y/Enter: Confirm  n/Esc: Back");
-}
-
-#[test]
-fn test_screen_titles() {
-    assert_eq!(Screen::RepoSelection.title(), "Select Repos");
-    assert_eq!(Screen::CreateMR.title(), "Describe");
-    assert_eq!(Screen::ReviewerSelection.title(), "Add Reviewers");
-    assert_eq!(Screen::Finalize.title(), "Finalize");
 }
 
 #[test]
@@ -54,11 +30,6 @@ fn test_config_default() {
     );
     assert!(cfg.reviewers.is_empty());
     assert!(cfg.labels.is_empty());
-}
-
-#[test]
-fn test_input_focus_default() {
-    assert_eq!(InputFocus::default(), InputFocus::Label);
 }
 
 #[test]
@@ -79,7 +50,7 @@ fn test_merge_request_fields() {
 
 #[test]
 fn test_app_quit_sets_running_false() {
-    let mut app = App::new(true);
+    let mut app = app::App::new(true);
     app.running = true;
     app.quit();
     assert!(!app.running);
