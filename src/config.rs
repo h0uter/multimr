@@ -6,19 +6,23 @@ use std::collections::HashMap;
 pub(crate) const CONFIG_FILE: &str = "multimr.toml";
 pub(crate) const DEFAULT_BRANCHES: [&str; 2] = ["main", "master"];
 
-/// Configuration for the application, loaded from a `multimr.toml` file.
-#[derive(Debug, Default)]
+/// Total Configuration for the application.
+/// First read from a `multimr.toml` file, then overwritten with optional cli args.
+#[derive(Debug, Default, Clone)]
 pub(crate) struct Config {
     pub working_dir: PathBuf,
     pub reviewers: Vec<String>,
     pub labels: HashMap<String, String>,
     pub assignee: String,
+    /// Is this a dry run? If true, no merge requests will be created.
+    pub dry_run: bool,
 }
 
 /// User configuration is loaded from a `multimr.toml` file in the current working directory.
 pub(crate) fn load_config_from_toml() -> Config {
     let content = std::fs::read_to_string(CONFIG_FILE).unwrap_or_default();
 
+    /// This contains only the fields we need from the TOML file.
     #[derive(Deserialize)]
     struct ConfigToml {
         reviewers: Option<Vec<String>>,
@@ -62,5 +66,6 @@ pub(crate) fn load_config_from_toml() -> Config {
             .map(|m| m.into_iter().collect())
             .unwrap_or_default(),
         assignee: parsed.assignee.expect("Assignee is required"),
+        dry_run: false, // Default to false, can be set later
     }
 }

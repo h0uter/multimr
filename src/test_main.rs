@@ -6,16 +6,8 @@ use crate::*;
 use std::path::PathBuf;
 
 #[test]
-fn test_app_new_sets_dry_run() {
-    let app = app::App::new(true);
-    assert!(app.dry_run);
-    let app2 = app::App::new(false);
-    assert!(!app2.dry_run);
-}
-
-#[test]
 fn test_app_dirs_populated() {
-    let app = app::App::new(true);
+    let app = app::App::new(Config::default());
     // Should at least have dirs as a Vec
     assert!(app.dirs.is_empty() || app.dirs.iter().all(|d| !d.is_empty()));
 }
@@ -50,7 +42,7 @@ fn test_merge_request_fields() {
 
 #[test]
 fn test_app_quit_sets_running_false() {
-    let mut app = app::App::new(true);
+    let mut app = app::App::new(Config::default());
     app.running = true;
     app.quit();
     assert!(!app.running);
@@ -58,7 +50,7 @@ fn test_app_quit_sets_running_false() {
 
 #[test]
 fn test_app_selected_repos_toggle() {
-    let mut app = App::new(true);
+    let mut app = App::new(Config::default());
     app.dirs = vec!["repo1".to_string(), "repo2".to_string()];
     app.selected_index = 0;
     app.selected_repos.insert(0);
@@ -69,8 +61,8 @@ fn test_app_selected_repos_toggle() {
 
 #[test]
 fn test_app_selected_reviewers_toggle() {
-    let mut app = App::new(true);
-    app.cfg.reviewers = vec!["alice".to_string(), "bob".to_string()];
+    let mut app = App::new(Config::default());
+    app.config.reviewers = vec!["alice".to_string(), "bob".to_string()];
     app.reviewer_index = 1;
     app.selected_reviewers.insert(1);
     assert!(app.selected_reviewers.contains(&1));
@@ -135,6 +127,9 @@ fn test_ensure_glab_installed_does_not_panic() {
 
 #[test]
 fn test_app_new_with_dry_run() {
-    let app = App::new(true);
-    assert!(app.dry_run);
+    let app = App::new(Config {
+        dry_run: true,
+        ..Config::default()
+    });
+    assert!(app.config.dry_run);
 }

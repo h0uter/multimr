@@ -24,7 +24,7 @@ use ratatui::widgets::ListItem;
 use ratatui::widgets::Paragraph;
 use ratatui::widgets::Widget;
 
-use crate::config;
+use crate::config::Config;
 use crate::merge_request;
 
 #[derive(Debug, Default)]
@@ -60,7 +60,7 @@ impl Screen {
 #[derive(Debug, Default)]
 pub struct App {
     /// Configuration loaded from `multimr.toml`
-    pub(crate) cfg: config::Config,
+    pub(crate) config: Config,
     /// Is the application running?
     pub(crate) running: bool,
     /// List of directories in the current working directory.
@@ -79,8 +79,6 @@ pub struct App {
     pub(crate) selected_reviewers: HashSet<usize>,
     /// Currently selected label index
     pub(crate) selected_label: usize,
-    /// Is this a dry run? If true, no merge requests will be created.
-    pub(crate) dry_run: bool,
 
     /// Whether the user has completed the input process and did not quit early
     pub(crate) user_input_completed: bool,
@@ -105,19 +103,16 @@ pub(crate) enum InputFocus {
 }
 
 impl App {
-    pub fn new(dry_run: bool) -> Self {
+    pub(crate) fn new(config: Config) -> Self {
         let mut app = Self {
+            config,
             selected_label: 0,
             selected_index: 0,
-            dry_run,
             ..Default::default()
         };
 
-        let cfg = config::load_config_from_toml();
-        app.cfg = cfg;
-
         // Populate dirs with all directories in the current working directory
-        if let Ok(entries) = fs::read_dir(&app.cfg.working_dir) {
+        if let Ok(entries) = fs::read_dir(&app.config.working_dir) {
             // TODO: ensure we only show git directories
             app.dirs = entries
                 .filter_map(|entry| entry.ok())
@@ -135,7 +130,7 @@ impl App {
     }
 
     /// Run the application's main loop.
-    pub fn run(mut self, mut terminal: DefaultTerminal) -> Result<Self> {
+    pub(crate) fn run(mut self, mut terminal: DefaultTerminal) -> Result<Self> {
         self.running = true;
         while self.running {
             terminal.draw(|frame| self.render(frame))?;
@@ -208,7 +203,7 @@ impl App {
 
         Paragraph::new(format!(
             "Current directory: {} (Selected: {})",
-            self.cfg.working_dir.display(),
+            self.config.working_dir.display(),
             self.selected_repos.len()
         ))
         .centered()
@@ -268,7 +263,7 @@ impl App {
             .render(description_input_area, buf);
 
         let label_items: Vec<ListItem> = self
-            .cfg
+            .config
             .labels
             .iter()
             .enumerate()
@@ -298,7 +293,7 @@ impl App {
         let [list_area] = Layout::vertical([Constraint::Min(1)]).areas(window);
 
         let items: Vec<ListItem> = self
-            .cfg
+            .config
             .reviewers
             .iter()
             .enumerate()
@@ -331,7 +326,7 @@ impl App {
             .selected_reviewers
             .iter()
             .copied()
-            .filter_map(|i| self.cfg.reviewers.get(i))
+            .filter_map(|i| self.config.reviewers.get(i))
             .collect();
 
         let dirs_text = if selected_dirs.is_empty() {
@@ -452,16 +447,16 @@ impl App {
                 InputFocus::Description => self.mr_description.push(c),
                 InputFocus::Label => match c {
                     'j' => {
-                        if !self.cfg.labels.is_empty() {
+                        if !self.config.labels.is_empty() {
                             let idx = self.selected_label;
-                            self.selected_label = (idx + 1) % self.cfg.labels.len();
+                            self.selected_label = (idx + 1) % self.config.labels.len();
                         }
                     }
                     'k' => {
-                        if !self.cfg.labels.is_empty() {
+                        if !self.config.labels.is_empty() {
                             let idx = self.selected_label;
                             self.selected_label = if idx == 0 {
-                                self.cfg.labels.len() - 1
+                                self.config.labels.len() - 1
                             } else {
                                 idx - 1
                             };
@@ -471,16 +466,16 @@ impl App {
                 },
             },
             KeyCode::Down => {
-                if self.input_focus == InputFocus::Label && !self.cfg.labels.is_empty() {
+                if self.input_focus == InputFocus::Label && !self.config.labels.is_empty() {
                     let idx = self.selected_label;
-                    self.selected_label = (idx + 1) % self.cfg.labels.len();
+                    self.selected_label = (idx + 1) % self.config.labels.len();
                 }
             }
             KeyCode::Up => {
-                if self.input_focus == InputFocus::Label && !self.cfg.labels.is_empty() {
+                if self.input_focus == InputFocus::Label && !self.config.labels.is_empty() {
                     let idx = self.selected_label;
                     self.selected_label = if idx == 0 {
-                        self.cfg.labels.len() - 1
+                        self.config.labels.len() - 1
                     } else {
                         idx - 1
                     };
@@ -499,14 +494,14 @@ impl App {
     pub(crate) fn on_key_event_select_reviewers(&mut self, key: KeyEvent) {
         match key.code {
             KeyCode::Down | KeyCode::Char('j') => {
-                if !self.cfg.reviewers.is_empty() {
-                    self.reviewer_index = (self.reviewer_index + 1) % self.cfg.reviewers.len();
+                if !self.config.reviewers.is_empty() {
+                    self.reviewer_index = (self.reviewer_index + 1) % self.config.reviewers.len();
                 }
             }
             KeyCode::Up | KeyCode::Char('h') => {
-                if !self.cfg.reviewers.is_empty() {
+                if !self.config.reviewers.is_empty() {
                     if self.reviewer_index == 0 {
-                        self.reviewer_index = self.cfg.reviewers.len() - 1;
+                        self.reviewer_index = self.config.reviewers.len() - 1;
                     } else {
                         self.reviewer_index -= 1;
                     }
@@ -538,16 +533,16 @@ impl App {
                     reviewers: self
                         .selected_reviewers
                         .iter()
-                        .map(|&i| self.cfg.reviewers[i].clone())
+                        .map(|&i| self.config.reviewers[i].clone())
                         .collect(),
                     labels: self
-                        .cfg
+                        .config
                         .labels
                         .keys()
                         .nth(self.selected_label)
                         .map(|k| vec![k.clone()])
                         .unwrap_or_default(),
-                    assignee: self.cfg.assignee.clone(),
+                    assignee: self.config.assignee.clone(),
                 });
 
                 self.quit_completed();

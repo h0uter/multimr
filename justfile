@@ -13,3 +13,9 @@ run:
 
 doc:
     cargo doc --no-deps --open
+
+test:
+    cargo test --all-features
+
+check:
+    pre-commit run --all-files
