@@ -1,3 +1,5 @@
+//! Helper functions for the multimr application.
+
 /// Getting the current branch is needed to determine if a new branch should be created for the merge request.
 pub(crate) fn get_current_branch() -> String {
     let current_branch_output = std::process::Command::new("git")

@@ -1,4 +1,4 @@
-/// This module provides functionality to create a merge request using the `glab` CLI.
+//! Provides functionality to create merge requests using the `glab` CLI.
 use std::{env, io, process};
 
 use color_eyre::Result;

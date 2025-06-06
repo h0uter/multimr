@@ -1,4 +1,4 @@
-/// This module handles loading the configuration for the multimr application.
+//! Handles loading the configuration for the multimr application from a TOML file .
 use std::collections::HashMap;
 use std::path::PathBuf;
 

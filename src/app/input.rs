@@ -1,4 +1,4 @@
-/// This module handles the input events for the application.
+//! Handle the input events for the application.
 use color_eyre::Result;
 use crossterm::event;
 use crossterm::event::Event;
