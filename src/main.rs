@@ -2,7 +2,7 @@ use color_eyre::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::{Color, Style};
-use ratatui::widgets::{Block, List, ListItem, Paragraph};
+use ratatui::widgets::{Block, List, ListItem, Paragraph, Widget};
 use ratatui::{DefaultTerminal, Frame, style::Stylize, text::Line};
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
@@ -135,7 +135,7 @@ impl App {
     }
 
     fn render_repo_selection(&mut self, frame: &mut Frame) {
-        let title = create_title("Repository Selection"); 
+        let title = create_title("Repository Selection");
         let repos: Vec<ListItem> = self
             .dirs
             .iter()
@@ -178,7 +178,7 @@ impl App {
         let help = Paragraph::new(self.screen.help())
             .centered()
             .style(Style::default().fg(Color::DarkGray));
-        frame.render_widget(help, layout[3]);
+        frame.render_widget(help, layout[2]);
     }
 
     fn render_create_mr(&mut self, frame: &mut Frame) {
@@ -202,20 +202,34 @@ impl App {
         // Split the screen: main box + help bar at the bottom
         let title = create_title("Describe");
 
-        let main_layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Min(0),    // main area for the box
-                Constraint::Length(1), // help bar
-            ])
-            .split(frame.area());
+        let main_layout = Layout::vertical([
+            Constraint::Min(0),    // main area for the box
+            Constraint::Length(1), // help bar
+        ])
+        .split(frame.area());
 
         // Outer block for the whole screen (except help)
         let outer_block = Block::bordered().title(title);
         let inner_area = outer_block.inner(main_layout[0]);
         frame.render_widget(outer_block, main_layout[0]);
 
-        let dirs = Paragraph::new(format!("Repositories:\n{}", dirs_text));
+        // Layout inside the box: dirs, title input, desc input, label select
+        let [
+            dir_area,
+            title_input_area,
+            description_input_area,
+            label_input_area,
+        ] = Layout::vertical([
+            Constraint::Min(3),
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(5), // label box
+        ])
+        .areas(inner_area);
+
+        Paragraph::new(format!("Repositories:\n{}", dirs_text))
+            .render(dir_area, frame.buffer_mut());
+
         let title_input = if self.input_focus == InputFocus::Title {
             Paragraph::new(self.mr_title.as_str())
                 .style(Style::default().bg(Color::Blue).fg(Color::White))
@@ -223,6 +237,7 @@ impl App {
         } else {
             Paragraph::new(self.mr_title.as_str()).block(Block::bordered().title("Title"))
         };
+        title_input.render(title_input_area, frame.buffer_mut());
 
         let desc_input = if self.input_focus == InputFocus::Description {
             Paragraph::new(self.mr_description.as_str())
@@ -258,21 +273,9 @@ impl App {
 
         let glab_label_list = List::new(label_items).block(Block::bordered().title("Label"));
 
-        // Layout inside the box: dirs, title input, desc input, label select
-        let inbox_layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Min(3),
-                Constraint::Length(3),
-                Constraint::Length(3),
-                Constraint::Length(5), // label box
-            ])
-            .split(inner_area);
-        frame.render_widget(dirs, inbox_layout[0]);
-        frame.render_widget(title_input, inbox_layout[1]);
-        frame.render_widget(desc_input, inbox_layout[2]);
-        frame.render_widget(glab_label_list, inbox_layout[3]);
-
+        frame.render_widget(desc_input, description_input_area);
+        frame.render_widget(glab_label_list, label_input_area);
+        // No additional code needed here for now.
         // Help bar at the very bottom, outside the box
         let help = Paragraph::new(self.screen.help())
             .centered()
@@ -349,20 +352,25 @@ impl App {
                 .collect::<Vec<_>>()
                 .join(", ")
         };
-        let overview = format!(
-            "Overview\n\nRepositories: {}\nTitle: {}\nDescription: {}\nReviewers: {}\n\nPress 'y' to confirm, 'n' to go back.",
-            dirs_text, self.mr_title, self.mr_description, reviewers_text
-        );
         let layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Min(1), Constraint::Length(1)])
             .split(frame.area());
-        let para = Paragraph::new(overview);
-        frame.render_widget(para, layout[0]);
+
+        Paragraph::new(format!(
+            "Overview\n\nRepositories: {}\nTitle: {}\nDescription: {}\nReviewers: {}\n\nPress 'y' to confirm, 'n' to go back.",
+            dirs_text, self.mr_title, self.mr_description, reviewers_text
+        )).render(layout[0], frame.buffer_mut());
+
+        let help = self.create_help_text();
+        frame.render_widget(help, layout[1]);
+    }
+
+    fn create_help_text(&mut self) -> Paragraph<'_> {
         let help = Paragraph::new(self.screen.help())
             .centered()
             .style(Style::default().fg(Color::DarkGray));
-        frame.render_widget(help, layout[1]);
+        help
     }
 
     /// Reads the crossterm events and updates the state of [`App`].
