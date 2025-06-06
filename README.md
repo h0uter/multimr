@@ -34,3 +34,4 @@
   - good for small cross cutting changes, like updating pre-commit tool versions or updating dependencies.
 - **from ft/fx workflow::** we are already on various feature branches, we just want to create identical merge requests for all of them.
   - Good for when started working on a single feature branch, but then later realize that adding this feature will require changes in multiple repositories.
+  - [ ] is there any harm in creating a new branch anyway? I think not.
