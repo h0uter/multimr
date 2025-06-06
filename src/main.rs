@@ -22,6 +22,11 @@ fn main() -> color_eyre::Result<()> {
     let app = app.run(terminal)?;
     ratatui::restore();
 
+    println!("Multi MR will now create merge requests for the following repositories:");
+    for dir_index in &app.selected_repos {
+        println!(" - {}", app.dirs[*dir_index]);
+    }
+
     for dir_index in app.selected_repos {
         let dir = app.dirs[dir_index].clone();
         std::env::set_current_dir(&app.cfg.working_dir.join(&dir))
@@ -628,12 +633,16 @@ impl MergeRequest {
         if DEFAULT_BRANCHES.contains(&current_branch.as_str()) {
             // If the current branch is main or master, create a new branch
 
+            println!("");
+
             std::process::Command::new("git")
                 .arg("switch")
                 .arg("-c")
                 .arg(self.title.replace(' ', "-"))
                 .status()
                 .expect("Failed to create new branch");
+
+            println!("");
 
             std::process::Command::new("git")
                 .arg("add")
@@ -654,6 +663,8 @@ impl MergeRequest {
                         .arg(".")
                         .status()
                         .expect("Failed to add changes Second attempt");
+
+                    println!("");
 
                     let status = std::process::Command::new("git")
                         .arg("commit")
