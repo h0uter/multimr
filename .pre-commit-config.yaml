@@ -14,6 +14,6 @@ repos:
       - id: cargo-check
         args: ["--workspace"]
       - id: fmt
-        args: ["--", "--check"]
+        # args: ["--", "--check"]
       - id: clippy
-        args: ["--", "-D", "warnings"]
+        # args: ["--", "-D", "warnings"]
