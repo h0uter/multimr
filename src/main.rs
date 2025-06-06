@@ -635,7 +635,24 @@ impl MergeRequest {
                 .arg("-am")
                 .arg(&self.title)
                 .status()
-                .expect("Failed to commit changes");
+                .or_else(|_e| -> Result<std::process::ExitStatus, std::io::Error> {
+                    // Retry once if adding and committing fails, this might happen if the pre-commit hook formats the code
+                    // TODO: test this.
+                    std::process::Command::new("git")
+                        .arg("add")
+                        .arg(".")
+                        .status()
+                        .expect("Failed to add changes Second attempt");
+
+                    let status = std::process::Command::new("git")
+                        .arg("commit")
+                        .arg("-am")
+                        .arg(&self.title)
+                        .status()
+                        .expect("Failed to commit changes second attempt");
+                    
+                    Ok(status)
+                }).expect("Failed to commit changes twice.");
 
             // TODO: add retry for when pre-commit hook makes some formatting changes
 
