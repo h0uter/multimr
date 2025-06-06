@@ -8,8 +8,8 @@ use ratatui::widgets::{Block, List, ListItem, Paragraph, Widget};
 use ratatui::{DefaultTerminal, Frame, style::Stylize, text::Line};
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
 use std::fs;
+use std::path::PathBuf;
 
 const CONFIG_FILE: &str = "multimr.toml";
 const DEFAULT_BRANCHES: [&str; 2] = ["main", "master"];
