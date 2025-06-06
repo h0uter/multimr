@@ -5,9 +5,6 @@ mod config;
 mod merge_request;
 mod utils;
 
-const CONFIG_FILE: &str = "multimr.toml";
-const DEFAULT_BRANCHES: [&str; 2] = ["main", "master"];
-
 /// CLI arguments
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]

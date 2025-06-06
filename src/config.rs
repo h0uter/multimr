@@ -3,7 +3,8 @@ use std::path::PathBuf;
 
 use std::collections::HashMap;
 
-use super::CONFIG_FILE;
+pub(crate) const CONFIG_FILE: &str = "multimr.toml";
+pub(crate) const DEFAULT_BRANCHES: [&str; 2] = ["main", "master"];
 
 /// Configuration for the application, loaded from a `multimr.toml` file.
 #[derive(Debug, Default)]

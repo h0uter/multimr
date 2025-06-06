@@ -1,8 +1,7 @@
 use color_eyre::Result;
 
-use super::DEFAULT_BRANCHES;
-
 use super::utils;
+use crate::config;
 
 /// Represents a merge request to be created.
 #[derive(Debug)]
@@ -15,16 +14,6 @@ pub struct MergeRequest {
 }
 
 impl MergeRequest {
-    // fn dummy_create(&mut self) -> std::process::Command {
-    //     let mut cmd = std::process::Command::new("sh");
-    //     cmd.arg("-c").arg(format!(
-    //         "terminal-notifier -sound default -title 'Created MR: {}' -message '{}'",
-    //         self.title, self.description,
-    //     ));
-
-    //     cmd
-    // }
-
     /// Construct a command to create a merge request for the cwd repo using the `glab` CLI.
     /// If the current branch is main or master, create a new branch
     pub(crate) fn create(&self) -> std::process::Command {
@@ -51,7 +40,7 @@ impl MergeRequest {
         cmd.arg("--title").arg(&self.title);
         cmd.arg("--description").arg(&self.description);
 
-        if DEFAULT_BRANCHES.contains(&current_branch.as_str()) {
+        if config::DEFAULT_BRANCHES.contains(&current_branch.as_str()) {
             // If the current branch is main or master, create a new branch
 
             println!();
