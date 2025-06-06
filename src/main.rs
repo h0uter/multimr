@@ -112,6 +112,8 @@ pub struct Config {
 /// The main application which holds the state and logic of the application.
 #[derive(Debug, Default)]
 pub struct App {
+    /// Configuration loaded from `multimr.toml`
+    cfg: Config,
     /// Is the application running?
     running: bool,
     /// List of directories in the current working directory.
@@ -120,20 +122,31 @@ pub struct App {
     selected_repos: HashSet<usize>,
     /// Currently highlighted directory index
     selected_index: usize,
+    /// Current screen (stage) of the application
     screen: Screen,
-    /// For CreateMR screen
+    /// Title of the merge requests to be created
     mr_title: String,
+    /// Description of the merge requests to be created
     mr_description: String,
-    input_focus: InputFocus,
     /// Indices of selected reviewers
     selected_reviewers: HashSet<usize>,
+    /// Currently selected label index
+    selected_label: usize,
+    /// Is this a dry run? If true, no merge requests will be created.
+    dry_run: bool,
+
+    /// Whether the user has completed the input process and did not quit early
+    user_input_completed: bool,
+
+    // TODO: move stuff only relevant to specific screens into a separate struct
+    /// Input focus specifically for the CreateMR screen
+    input_focus: InputFocus,
     /// Currently highlighted reviewer index
     reviewer_index: usize,
-    selected_label: usize,
-    cfg: Config,
-    dry_run: bool,
+
+    // TODO: move this out of here
+    /// The merge request that is created at the end of the process
     mr: Option<MergeRequest>,
-    user_input_completed: bool,
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
