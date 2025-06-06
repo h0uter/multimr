@@ -18,7 +18,7 @@
 - [ ] add related merge requests in description of the merge request
 - [x] add some logic to handle a pre-commit hook that changes some files.
 - [ ] setup the CLI so it can be used to overwrite the TOML config file.
-- [ ] use external crates for more natural user prompting. https://github.com/ratatui/ratatui/tree/main/examples/apps/input-form
+- [ ] use external crates for more natural user prompting. <https://github.com/ratatui/ratatui/tree/main/examples/apps/input-form>
 
 ## Fixes
 
@@ -26,7 +26,6 @@
   - [x] find out what causes the output
   - [x] show the output in the tui window instead of the terminal or just close the tui and then run the commands afterwards.
 - [ ] if I cd into src_repos and run `mmr`, I get the error "Assignee is required" this is not very user friendly.
-
 
 ## Workflows
 
