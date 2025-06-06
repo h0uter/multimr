@@ -1,14 +1,15 @@
 use color_eyre::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
+use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Style};
 use ratatui::widgets::{Block, List, ListItem, Paragraph, Widget};
 use ratatui::{DefaultTerminal, Frame, style::Stylize, text::Line};
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
-use std::fs;
 use std::path::PathBuf;
+use std::{env, fs};
+
 const CONFIG_FILE: &str = "multimr.toml";
 const DEFAULT_BRANCHES: [&str; 2] = ["main", "master"];
 
@@ -17,9 +18,28 @@ fn main() -> color_eyre::Result<()> {
 
     color_eyre::install()?;
     let terminal = ratatui::init();
-    let result = App::new().run(terminal);
+    let app = App::new();
+    let app = app.run(terminal)?;
     ratatui::restore();
-    result
+
+    for dir_index in app.selected_repos {
+        let dir = app.dirs[dir_index].clone();
+        std::env::set_current_dir(&app.cfg.working_dir.join(&dir))
+            .expect(format!("Failed to change directory to: {}", dir).as_str());
+
+        let cmd = app.mr.as_ref().expect("somehow no mr specified").create();
+
+        if app.dry_run {
+            app.mr
+                .as_ref()
+                .expect("somehow no mr specified")
+                .dry_run(cmd);
+        } else {
+            app.mr.as_ref().expect("somehow no mr specified").run(cmd);
+        }
+    }
+
+    Ok(())
 }
 
 #[derive(Debug, Default)]
@@ -81,6 +101,8 @@ pub struct App {
     reviewer_index: usize,
     selected_label: usize,
     cfg: Config,
+    dry_run: bool,
+    mr: Option<MergeRequest>,
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -93,9 +115,15 @@ enum InputFocus {
 
 impl App {
     pub fn new() -> Self {
+        let dry_run = env::var("DRY_RUN")
+            .unwrap_or("true".to_string())
+            .to_lowercase()
+            == "true";
+
         let mut app = Self {
             selected_label: 0,
             selected_index: 0,
+            dry_run,
             ..Default::default()
         };
         // Load reviewers from reviewers.toml
@@ -120,13 +148,13 @@ impl App {
     }
 
     /// Run the application's main loop.
-    pub fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
+    pub fn run(mut self, mut terminal: DefaultTerminal) -> Result<Self> {
         self.running = true;
         while self.running {
             terminal.draw(|frame| self.render(frame))?;
             self.handle_crossterm_events()?;
         }
-        Ok(())
+        Ok(self)
     }
 
     /// Renders the user interface.
@@ -516,7 +544,7 @@ impl App {
     fn on_key_event_overview(&mut self, key: KeyEvent) {
         match key.code {
             KeyCode::Char('y') | KeyCode::Enter => {
-                let mut mr = MergeRequest {
+                self.mr = Some(MergeRequest {
                     title: self.mr_title.clone(),
                     description: self.mr_description.clone(),
                     reviewers: self
@@ -533,17 +561,7 @@ impl App {
                         .unwrap_or_default(),
                     draft: false, // TODO: Add a way to mark as draft
                     assignee: self.cfg.assignee.clone(),
-                    cmd: None, // Placeholder for command, not used in this example
-                };
-                for dir_index in &self.selected_repos {
-                    let dir = self.dirs[*dir_index].clone();
-                    std::env::set_current_dir(&self.cfg.working_dir.join(&dir))
-                        .expect(format!("Failed to change directory to: {}", dir).as_str());
-
-                    // mr.dummy_create();
-                    mr.create();
-                    mr.run();
-                }
+                });
 
                 self.quit();
             }
@@ -560,6 +578,7 @@ impl App {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct MergeRequest {
     title: String,
     description: String,
@@ -567,22 +586,21 @@ pub struct MergeRequest {
     labels: Vec<String>,
     draft: bool,
     assignee: String,
-    cmd: Option<std::process::Command>,
 }
 
 impl MergeRequest {
     // Placeholder for actual MR creation logic
-    fn dummy_create(&mut self) {
+    fn dummy_create(&mut self) -> std::process::Command {
         let mut cmd = std::process::Command::new("sh");
         cmd.arg("-c").arg(format!(
             "terminal-notifier -sound default -title 'Created MR: {}' -message '{}'",
             self.title, self.description,
         ));
 
-        self.cmd = Some(cmd);
+        cmd
     }
 
-    fn create(&mut self) {
+    fn create(&self) -> std::process::Command {
         // Create the merge request using glab CLI
         let mut cmd = std::process::Command::new("glab");
         cmd.arg("mr")
@@ -656,28 +674,25 @@ impl MergeRequest {
             cmd.arg("--yes");
         }
 
-        self.cmd = Some(cmd);
+        cmd
     }
 
-    fn run(&mut self) {
-        if let Some(cmd) = &mut self.cmd {
-            let status = cmd.status().expect("Failed to execute command");
-            if !status.success() {
-                eprintln!("Failed to create merge request: {:?}", status);
-            } else {
-                println!("Merge request created successfully.");
-            }
+    fn run(&self, mut cmd: std::process::Command) {
+        let status = cmd.status().expect("Failed to execute command");
+        if !status.success() {
+            eprintln!("Failed to create merge request: {:?}", status);
         } else {
-            eprintln!("No command to run. Please create the MR first.");
+            println!("Merge request created successfully.");
         }
     }
 
-    fn dry_run(&mut self) {
-        if let Some(cmd) = &self.cmd {
-            println!("Dry run command: {:?}", cmd);
-        } else {
-            eprintln!("No command to dry run. Please create the MR first.");
-        }
+    fn dry_run(&self, cmd: std::process::Command) {
+        println!(
+            "Current directory: {}",
+            std::env::current_dir().unwrap().display()
+        );
+
+        println!("Dry run command: {:?}", cmd);
     }
 }
 
