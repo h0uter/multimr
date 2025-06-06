@@ -167,7 +167,7 @@ fn test_ensure_git_repo_does_not_panic() {
 
 #[test]
 fn test_app_new_with_dry_run() {
-    let app = App::new_with_dry_run(true);
+    let app = App::new(true);
     assert!(app.dry_run);
 }
 

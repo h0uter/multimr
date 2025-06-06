@@ -172,34 +172,6 @@ impl App {
         app
     }
 
-    pub fn new_with_dry_run(dry_run: bool) -> Self {
-        let mut app = Self {
-            selected_label: 0,
-            selected_index: 0,
-            dry_run,
-            ..Default::default()
-        };
-        // Load reviewers from reviewers.toml
-        let cfg = load_config_from_toml();
-        app.cfg = cfg;
-
-        // Populate dirs with all directories in the current working directory
-        if let Ok(entries) = fs::read_dir(&app.cfg.working_dir) {
-            app.dirs = entries
-                .filter_map(|entry| entry.ok())
-                .filter_map(|entry| {
-                    let path = entry.path();
-                    if path.is_dir() {
-                        path.file_name().map(|n| n.to_string_lossy().to_string())
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-        }
-        app
-    }
-
     /// Run the application's main loop.
     pub fn run(mut self, mut terminal: DefaultTerminal) -> Result<Self> {
         self.running = true;
