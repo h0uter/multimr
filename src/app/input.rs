@@ -10,7 +10,7 @@ use crate::merge_request;
 
 use super::App;
 use super::InputFocus;
-use super::Screen;
+use super::Screens;
 
 impl App {
     /// Reads the crossterm events and updates the state of [`App`].
@@ -38,10 +38,10 @@ impl App {
         }
 
         match self.screen {
-            Screen::RepoSelection => self.on_key_event_selection(key),
-            Screen::CreateMR => self.on_key_event_create_mr(key),
-            Screen::ReviewerSelection => self.on_key_event_select_reviewers(key),
-            Screen::Finalize => self.on_key_event_overview(key),
+            Screens::RepoSelection => self.on_key_event_selection(key),
+            Screens::CreateMR => self.on_key_event_create_mr(key),
+            Screens::ReviewerSelection => self.on_key_event_select_reviewers(key),
+            Screens::Finalize => self.on_key_event_overview(key),
         }
     }
 
@@ -73,7 +73,7 @@ impl App {
             }
             KeyCode::Enter => {
                 if !self.selected_repos.is_empty() {
-                    self.screen = Screen::CreateMR;
+                    self.screen = Screens::CreateMR;
                 }
             }
             _ => {}
@@ -138,10 +138,10 @@ impl App {
                 }
             }
             KeyCode::Enter => {
-                self.screen = Screen::ReviewerSelection;
+                self.screen = Screens::ReviewerSelection;
             }
             KeyCode::Esc => {
-                self.screen = Screen::RepoSelection;
+                self.screen = Screens::RepoSelection;
             }
             _ => {}
         }
@@ -171,10 +171,10 @@ impl App {
                 }
             }
             KeyCode::Enter => {
-                self.screen = Screen::Finalize;
+                self.screen = Screens::Finalize;
             }
             KeyCode::Esc => {
-                self.screen = Screen::CreateMR;
+                self.screen = Screens::CreateMR;
             }
             _ => {}
         }
@@ -204,7 +204,7 @@ impl App {
                 self.quit_completed();
             }
             KeyCode::Char('n') | KeyCode::Esc => {
-                self.screen = Screen::ReviewerSelection;
+                self.screen = Screens::ReviewerSelection;
             }
             _ => {}
         }

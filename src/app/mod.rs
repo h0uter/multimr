@@ -18,7 +18,7 @@ use crate::merge_request;
 mod input;
 
 #[derive(Debug, Default)]
-pub(crate) enum Screen {
+pub(crate) enum Screens {
     #[default]
     RepoSelection,
     CreateMR,
@@ -26,22 +26,22 @@ pub(crate) enum Screen {
     Finalize,
 }
 
-impl Screen {
+impl Screens {
     pub(crate) fn help(&self) -> &'static str {
         match self {
-            Screen::RepoSelection => "↑/↓/j/k: Move  Space: Select  Enter: Next  q/Esc: Quit",
-            Screen::CreateMR => "Tab: Switch field  ↑/↓/j/k: Select Label  Enter: Next  Esc: Back",
-            Screen::ReviewerSelection => "↑/↓/j/k: Move   Space:  Select  Enter: Next  Esc: Back",
-            Screen::Finalize => "y/Enter: Confirm  n/Esc: Back",
+            Screens::RepoSelection => "↑/↓/j/k: Move  Space: Select  Enter: Next  q/Esc: Quit",
+            Screens::CreateMR => "Tab: Switch field  ↑/↓/j/k: Select Label  Enter: Next  Esc: Back",
+            Screens::ReviewerSelection => "↑/↓/j/k: Move   Space:  Select  Enter: Next  Esc: Back",
+            Screens::Finalize => "y/Enter: Confirm  n/Esc: Back",
         }
     }
 
     pub(crate) fn title(&self) -> &'static str {
         match self {
-            Screen::RepoSelection => "Select Repos",
-            Screen::CreateMR => "Describe",
-            Screen::ReviewerSelection => "Add Reviewers",
-            Screen::Finalize => "Finalize",
+            Screens::RepoSelection => "Select Repos",
+            Screens::CreateMR => "Describe",
+            Screens::ReviewerSelection => "Add Reviewers",
+            Screens::Finalize => "Finalize",
         }
     }
 }
@@ -60,7 +60,7 @@ pub struct App {
     /// Currently highlighted directory index
     pub(crate) selected_index: usize,
     /// Current screen (stage) of the application
-    pub(crate) screen: Screen,
+    pub(crate) screen: Screens,
     /// Title of the merge requests to be created
     pub(crate) mr_title: String,
     /// Description of the merge requests to be created
@@ -148,12 +148,12 @@ impl App {
         let inner_area = outer_block.inner(window);
 
         match self.screen {
-            Screen::RepoSelection => self.render_repo_selection(inner_area, frame.buffer_mut()),
-            Screen::CreateMR => self.render_create_mr(inner_area, frame.buffer_mut()),
-            Screen::ReviewerSelection => {
+            Screens::RepoSelection => self.render_repo_selection(inner_area, frame.buffer_mut()),
+            Screens::CreateMR => self.render_create_mr(inner_area, frame.buffer_mut()),
+            Screens::ReviewerSelection => {
                 self.render_reviewer_selection(inner_area, frame.buffer_mut())
             }
-            Screen::Finalize => self.render_overview(inner_area, frame.buffer_mut()),
+            Screens::Finalize => self.render_overview(inner_area, frame.buffer_mut()),
         }
 
         outer_block.render(window, frame.buffer_mut());
