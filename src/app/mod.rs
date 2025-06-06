@@ -55,6 +55,8 @@ pub struct App {
     pub(crate) running: bool,
     /// List of directories in the current working directory.
     pub(crate) dirs: Vec<String>,
+    /// List of current branches in the selected directories.
+    pub(crate) branches: Vec<String>,
     /// Indices of selected directories
     pub(crate) selected_repos: HashSet<usize>,
     /// Currently highlighted directory index
@@ -115,6 +117,38 @@ impl App {
                     }
                 })
                 .collect();
+
+            let mut valid_dirs = Vec::new();
+            for dir in &app.dirs {
+                // Check if the directory is a git repository
+                if std::process::Command::new("git")
+                    .arg("rev-parse")
+                    .arg("--is-inside-work-tree")
+                    .current_dir(app.config.working_dir.join(dir))
+                    .status()
+                    .is_ok()
+                {
+                    // If it is, add it to the list of valid directories
+                    valid_dirs.push(dir.clone());
+                }
+            }
+            app.dirs = valid_dirs;
+
+            for dir in app.dirs.iter() {
+                // Check if the directory is a git repository
+                if let Ok(current_branch_output) = std::process::Command::new("git")
+                    .arg("branch")
+                    .arg("--show-current")
+                    .current_dir(app.config.working_dir.join(dir))
+                    .output()
+                {
+                    app.branches.push(
+                        String::from_utf8_lossy(&current_branch_output.stdout)
+                            .trim()
+                            .to_string(),
+                    )
+                }
+            }
         }
         app
     }
@@ -177,9 +211,17 @@ impl App {
             .enumerate()
             .map(|(i, d)| {
                 let line = if self.selected_repos.contains(&i) {
-                    format!("[x] {}", d)
+                    format!(
+                        "[x] {} ({})",
+                        d,
+                        self.branches.get(i).unwrap_or(&"???".to_string())
+                    )
                 } else {
-                    format!("[ ] {}", d)
+                    format!(
+                        "[ ] {} ({})",
+                        d,
+                        self.branches.get(i).unwrap_or(&"???".to_string())
+                    )
                 };
                 let mut item = ListItem::new(line);
                 if i == self.selected_index {
