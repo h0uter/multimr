@@ -2,18 +2,12 @@ use color_eyre::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::{Color, Style};
-use ratatui::widgets::{ListItem, Paragraph};
-use ratatui::{
-    DefaultTerminal, Frame,
-    style::Stylize,
-    text::Line,
-    widgets::{Block, List},
-};
+use ratatui::widgets::{Block, List, ListItem, Paragraph};
+use ratatui::{DefaultTerminal, Frame, style::Stylize, text::Line};
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
-
 const CONFIG_FILE: &str = "multimr.toml";
 const DEFAULT_BRANCHES: [&str; 2] = ["main", "master"];
 
@@ -186,9 +180,6 @@ impl App {
     }
 
     fn render_create_mr(&mut self, frame: &mut Frame) {
-        use ratatui::layout::{Constraint, Direction, Layout};
-        use ratatui::style::{Color, Style};
-        use ratatui::widgets::{Block, List, ListItem, Paragraph};
         let selected_dirs: Vec<&String> = self
             .selected_repos
             .iter()
@@ -650,9 +641,10 @@ impl MergeRequest {
                         .arg(&self.title)
                         .status()
                         .expect("Failed to commit changes second attempt");
-                    
+
                     Ok(status)
-                }).expect("Failed to commit changes twice.");
+                })
+                .expect("Failed to commit changes twice.");
 
             // TODO: add retry for when pre-commit hook makes some formatting changes
 
