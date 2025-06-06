@@ -43,10 +43,10 @@ impl Screen {
 
     fn title(&self) -> &'static str {
         match self {
-            Screen::RepoSelection => "Repository Selection",
+            Screen::RepoSelection => "Select Repos",
             Screen::CreateMR => "Describe",
-            Screen::ReviewerSelection => "Reviewer Selection",
-            Screen::Finalize => "Finalization",
+            Screen::ReviewerSelection => "Add Reviewers",
+            Screen::Finalize => "Finalize",
         }
     }
 }
