@@ -9,7 +9,7 @@ use ratatui::{DefaultTerminal, Frame, style::Stylize, text::Line};
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use std::{env, fs};
+use std::fs;
 
 const CONFIG_FILE: &str = "multimr.toml";
 const DEFAULT_BRANCHES: [&str; 2] = ["main", "master"];
@@ -43,8 +43,8 @@ fn main() -> color_eyre::Result<()> {
 
     for dir_index in app.selected_repos {
         let dir = app.dirs[dir_index].clone();
-        std::env::set_current_dir(&app.cfg.working_dir.join(&dir))
-            .expect(format!("Failed to change directory to: {}", dir).as_str());
+        std::env::set_current_dir(app.cfg.working_dir.join(&dir))
+            .unwrap_or_else(|_| panic!("Failed to change directory to: {}", dir));
 
         let cmd = app.mr.as_ref().expect("somehow no mr specified").create();
 
@@ -670,7 +670,7 @@ impl MergeRequest {
         if DEFAULT_BRANCHES.contains(&current_branch.as_str()) {
             // If the current branch is main or master, create a new branch
 
-            println!("");
+            println!();
 
             std::process::Command::new("git")
                 .arg("switch")
@@ -679,7 +679,7 @@ impl MergeRequest {
                 .status()
                 .expect("Failed to create new branch");
 
-            println!("");
+            println!();
 
             std::process::Command::new("git")
                 .arg("add")
@@ -701,7 +701,7 @@ impl MergeRequest {
                         .status()
                         .expect("Failed to add changes Second attempt");
 
-                    println!("");
+                    println!();
 
                     let status = std::process::Command::new("git")
                         .arg("commit")
