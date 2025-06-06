@@ -100,6 +100,7 @@ impl Screen {
     }
 }
 
+/// Configuration for the application, loaded from a `multimr.toml` file.
 #[derive(Debug, Default)]
 pub struct Config {
     pub working_dir: PathBuf,
@@ -609,6 +610,7 @@ impl App {
     }
 }
 
+/// Represents a merge request to be created.
 #[derive(Debug)]
 pub struct MergeRequest {
     title: String,
