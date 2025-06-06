@@ -67,14 +67,12 @@ fn test_merge_request_fields() {
         description: "Desc".to_string(),
         reviewers: vec!["alice".to_string()],
         labels: vec!["bug".to_string()],
-        draft: false,
         assignee: "bob".to_string(),
     };
     assert_eq!(mr.title, "Test");
     assert_eq!(mr.description, "Desc");
     assert_eq!(mr.reviewers, vec!["alice"]);
     assert_eq!(mr.labels, vec!["bug"]);
-    assert!(!mr.draft);
     assert_eq!(mr.assignee, "bob");
 }
 
@@ -115,7 +113,6 @@ fn test_merge_request_create_command() {
         description: "TestDesc".to_string(),
         reviewers: vec!["alice".to_string()],
         labels: vec!["bug".to_string()],
-        draft: false,
         assignee: "bob".to_string(),
     };
     let cmd = mr.create();
@@ -134,7 +131,6 @@ fn test_merge_request_dry_run_prints() {
         description: "Desc".to_string(),
         reviewers: vec![],
         labels: vec![],
-        draft: false,
         assignee: "bob".to_string(),
     };
     let cmd = mr.create();
