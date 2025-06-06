@@ -831,3 +831,6 @@ fn ensure_git_repo() {
         std::process::exit(1);
     }
 }
+
+#[cfg(test)]
+mod test_main;
