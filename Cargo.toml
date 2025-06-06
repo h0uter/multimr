@@ -3,7 +3,7 @@ name = "multimr"
 version = "0.1.0"
 description = "Easily create identical MR/PRs on multiple repo's."
 authors = ["W. Meijer <houterm@gmail.com>"]
-license = "MIT"
+license = "Apache"
 edition = "2024"
 
 [[bin]]
