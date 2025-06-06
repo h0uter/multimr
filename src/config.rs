@@ -13,7 +13,7 @@ pub(crate) struct Config {
     pub working_dir: PathBuf,
     pub reviewers: Vec<String>,
     pub labels: HashMap<String, String>,
-    pub assignee: String,
+    pub assignee: Option<String>,
     /// Is this a dry run? If true, no merge requests will be created.
     pub dry_run: bool,
 }
@@ -65,7 +65,7 @@ pub(crate) fn load_config_from_toml() -> Config {
             .labels
             .map(|m| m.into_iter().collect())
             .unwrap_or_default(),
-        assignee: parsed.assignee.expect("Assignee is required"),
+        assignee: parsed.assignee,
         dry_run: false, // Default to false, can be set later
     }
 }

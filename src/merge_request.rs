@@ -10,7 +10,7 @@ pub struct MergeRequest {
     pub(crate) description: String,
     pub(crate) reviewers: Vec<String>,
     pub(crate) labels: Vec<String>,
-    pub(crate) assignee: String,
+    pub(crate) assignee: Option<String>,
 }
 
 impl MergeRequest {
@@ -18,10 +18,11 @@ impl MergeRequest {
     /// If the current branch is main or master, create a new branch
     pub(crate) fn create(&self) -> std::process::Command {
         let mut cmd = std::process::Command::new("glab");
-        cmd.arg("mr")
-            .arg("create")
-            .arg("--assignee")
-            .arg(&self.assignee);
+        cmd.arg("mr").arg("create");
+
+        if let Some(assignee) = &self.assignee {
+            cmd.arg("--assignee").arg(assignee);
+        }
 
         if !self.reviewers.is_empty() {
             for reviewer in &self.reviewers {

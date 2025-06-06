@@ -290,7 +290,8 @@ impl App {
 
     /// This screen allows the user to select reviewers for the merge request.
     pub(crate) fn render_reviewer_selection(&mut self, window: Rect, buf: &mut Buffer) {
-        let [list_area] = Layout::vertical([Constraint::Min(1)]).areas(window);
+        let [reviewer_area, assignee_area] =
+            Layout::vertical([Constraint::Min(1), Constraint::Min(1)]).areas(window);
 
         let items: Vec<ListItem> = self
             .config
@@ -311,7 +312,17 @@ impl App {
             })
             .collect();
 
-        List::new(items).render(list_area, buf);
+        List::new(items).render(reviewer_area, buf);
+        if let Some(assignee) = &self.config.assignee {
+            Paragraph::new(format!("Assignee: {}", assignee))
+                .style(Style::default().fg(Color::Green))
+                .render(assignee_area, buf);
+        } else {
+            // If no assignee is set, show a placeholder
+            Paragraph::new("No assignee set")
+                .style(Style::default().fg(Color::Red))
+                .render(assignee_area, buf);
+        }
     }
 
     /// This screen shows an overview of selected configuration and prompts the user one final time.

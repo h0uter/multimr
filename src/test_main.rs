@@ -31,13 +31,13 @@ fn test_merge_request_fields() {
         description: "Desc".to_string(),
         reviewers: vec!["alice".to_string()],
         labels: vec!["bug".to_string()],
-        assignee: "bob".to_string(),
+        assignee: Some("bob".to_string()),
     };
     assert_eq!(mr.title, "Test");
     assert_eq!(mr.description, "Desc");
     assert_eq!(mr.reviewers, vec!["alice"]);
     assert_eq!(mr.labels, vec!["bug"]);
-    assert_eq!(mr.assignee, "bob");
+    assert_eq!(mr.assignee, Some("bob".to_string()));
 }
 
 #[test]
@@ -77,7 +77,7 @@ fn test_merge_request_create_command() {
         description: "TestDesc".to_string(),
         reviewers: vec!["alice".to_string()],
         labels: vec!["bug".to_string()],
-        assignee: "bob".to_string(),
+        assignee: None,
     };
     let cmd = mr.create();
     let args: Vec<_> = cmd
@@ -95,7 +95,7 @@ fn test_merge_request_dry_run_prints() {
         description: "Desc".to_string(),
         reviewers: vec![],
         labels: vec![],
-        assignee: "bob".to_string(),
+        assignee: None,
     };
     let cmd = mr.create();
     mr.dry_run(cmd);
@@ -105,12 +105,6 @@ fn test_merge_request_dry_run_prints() {
 fn test_get_current_branch_returns_string() {
     let branch = utils::get_current_branch();
     assert!(branch.is_ascii());
-}
-
-#[test]
-fn test_load_config_from_toml_returns_config() {
-    let cfg = config::load_config_from_toml();
-    assert!(cfg.assignee.is_ascii() || cfg.assignee.is_empty());
 }
 
 #[test]

@@ -19,3 +19,8 @@ test:
 
 check:
     pre-commit run --all-files
+
+fix:
+    cargo fmt --all
+    cargo clippy --fix --all-features --allow-dirty --allow-staged
+    cargo fix --allow-dirty --allow-staged

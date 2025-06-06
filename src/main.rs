@@ -28,7 +28,7 @@ fn main() -> color_eyre::Result<()> {
 
     // Overwrite configuration if provided via CLI
     if let Some(assignee) = cli.assignee {
-        cfg.assignee = assignee;
+        cfg.assignee = Some(assignee);
     }
     cfg.dry_run = cli.dry_run; // Set dry_run mode based on CLI argument
 
