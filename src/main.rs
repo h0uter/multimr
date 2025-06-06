@@ -365,6 +365,16 @@ impl App {
 
     /// Handles the key events and updates the state of [`App`].
     fn on_key_event(&mut self, key: KeyEvent) {
+        // Handle global key events first
+        match key.code {
+            KeyCode::Char('c') | KeyCode::Char('C') => {
+                if key.modifiers == KeyModifiers::CONTROL {
+                    self.quit();
+                }
+            }
+            _ => {}
+        }
+
         match self.screen {
             Screen::RepoSelection => self.on_key_event_selection(key),
             Screen::CreateMR => self.on_key_event_create_mr(key),
@@ -374,15 +384,14 @@ impl App {
     }
 
     fn on_key_event_selection(&mut self, key: KeyEvent) {
-        match (key.modifiers, key.code) {
-            (_, KeyCode::Esc | KeyCode::Char('q'))
-            | (KeyModifiers::CONTROL, KeyCode::Char('c') | KeyCode::Char('C')) => self.quit(),
-            (_, KeyCode::Down | KeyCode::Char('j')) => {
+        match key.code {
+            KeyCode::Esc | KeyCode::Char('q') => self.quit(),
+            KeyCode::Down | KeyCode::Char('j') => {
                 if !self.dirs.is_empty() {
                     self.selected_index = (self.selected_index + 1) % self.dirs.len();
                 }
             }
-            (_, KeyCode::Up | KeyCode::Char('k')) => {
+            KeyCode::Up | KeyCode::Char('k') => {
                 if !self.dirs.is_empty() {
                     if self.selected_index == 0 {
                         self.selected_index = self.dirs.len() - 1;
@@ -391,14 +400,14 @@ impl App {
                     }
                 }
             }
-            (_, KeyCode::Char(' ')) => {
+            KeyCode::Char(' ') => {
                 if self.selected_repos.contains(&self.selected_index) {
                     self.selected_repos.remove(&self.selected_index);
                 } else {
                     self.selected_repos.insert(self.selected_index);
                 }
             }
-            (_, KeyCode::Enter) => {
+            KeyCode::Enter => {
                 if !self.selected_repos.is_empty() {
                     self.screen = Screen::CreateMR;
                 }
@@ -445,9 +454,7 @@ impl App {
                             };
                         }
                     }
-                    _ => {
-                        // Ignore other characters in label input
-                    }
+                    _ => {}
                 },
             },
             KeyCode::Down => {
@@ -511,7 +518,7 @@ impl App {
 
     fn on_key_event_overview(&mut self, key: KeyEvent) {
         match key.code {
-            KeyCode::Char('y') => {
+            KeyCode::Char('y') | KeyCode::Enter => {
                 let mut mr = MergeRequest {
                     title: self.mr_title.clone(),
                     description: self.mr_description.clone(),
@@ -543,7 +550,7 @@ impl App {
 
                 self.quit();
             }
-            KeyCode::Char('n') => {
+            KeyCode::Char('n') | KeyCode::Esc => {
                 self.screen = Screen::ReviewerSelection;
             }
             _ => {}
