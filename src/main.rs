@@ -2,7 +2,6 @@ use color_eyre::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::{Color, Style};
-use ratatui::widgets::block::title;
 use ratatui::widgets::{Block, List, ListItem, Paragraph};
 use ratatui::{DefaultTerminal, Frame, style::Stylize, text::Line};
 use serde::Deserialize;
@@ -136,8 +135,8 @@ impl App {
     }
 
     fn render_repo_selection(&mut self, frame: &mut Frame) {
-        let title = Line::from("Multi MR").bold().blue().centered();
-        let items: Vec<ListItem> = self
+        let title = create_title("Repository Selection"); 
+        let repos: Vec<ListItem> = self
             .dirs
             .iter()
             .enumerate()
@@ -154,40 +153,42 @@ impl App {
                 item
             })
             .collect();
-        let list = List::new(items).block(Block::bordered().title(title));
-        let chunks = Layout::default()
+        let repos_list = List::new(repos).block(Block::bordered().title(title));
+
+        let layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Min(3),
-                Constraint::Length(1), // for description
                 Constraint::Length(1), // for key help bar
                 Constraint::Length(1), // for directory info
             ])
             .split(frame.area());
-        frame.render_widget(list, chunks[0]);
-        let desc = Paragraph::new("Select repositories to create MR for").centered();
-        frame.render_widget(desc, chunks[1]);
+
+        frame.render_widget(repos_list, layout[0]);
+
         let dir_info = Paragraph::new(format!(
             "Current directory: {} (Selected: {})",
             self.cfg.working_dir.display(),
             self.selected_repos.len()
         ))
         .centered();
-        frame.render_widget(dir_info, chunks[2]);
+
+        frame.render_widget(dir_info, layout[1]);
+
         let help = Paragraph::new(self.screen.help())
             .centered()
             .style(Style::default().fg(Color::DarkGray));
-        frame.render_widget(help, chunks[3]);
+        frame.render_widget(help, layout[3]);
     }
 
     fn render_create_mr(&mut self, frame: &mut Frame) {
-        use ratatui::widgets::Block;
         let selected_dirs: Vec<&String> = self
             .selected_repos
             .iter()
             .copied()
             .filter_map(|i| self.dirs.get(i))
             .collect();
+
         let dirs_text = if selected_dirs.is_empty() {
             "No repositories selected".to_string()
         } else {
@@ -197,12 +198,23 @@ impl App {
                 .collect::<Vec<_>>()
                 .join("\n")
         };
-        // Outer block for the whole screen
-        let title = Line::from("Multi MR - Create").bold().blue().centered();
+
+        // Split the screen: main box + help bar at the bottom
+        let title = create_title("Describe");
+
+        let main_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Min(0),    // main area for the box
+                Constraint::Length(1), // help bar
+            ])
+            .split(frame.area());
+
+        // Outer block for the whole screen (except help)
         let outer_block = Block::bordered().title(title);
-        let area = frame.area();
-        let inner_area = outer_block.inner(area);
-        frame.render_widget(outer_block, area);
+        let inner_area = outer_block.inner(main_layout[0]);
+        frame.render_widget(outer_block, main_layout[0]);
+
         let dirs = Paragraph::new(format!("Repositories:\n{}", dirs_text));
         let title_input = if self.input_focus == InputFocus::Title {
             Paragraph::new(self.mr_title.as_str())
@@ -211,6 +223,7 @@ impl App {
         } else {
             Paragraph::new(self.mr_title.as_str()).block(Block::bordered().title("Title"))
         };
+
         let desc_input = if self.input_focus == InputFocus::Description {
             Paragraph::new(self.mr_description.as_str())
                 .style(Style::default().bg(Color::Blue).fg(Color::White))
@@ -219,6 +232,7 @@ impl App {
             Paragraph::new(self.mr_description.as_str())
                 .block(Block::bordered().title("Description"))
         };
+
         // Label selection box
         let label_items: Vec<ListItem> = self
             .cfg
@@ -241,33 +255,33 @@ impl App {
                 item
             })
             .collect();
-        let label_list = List::new(label_items).block(Block::bordered().title("Label"));
-        // Layout: title, dirs, title input, desc input, label select, help
-        let layout = Layout::default()
+
+        let glab_label_list = List::new(label_items).block(Block::bordered().title("Label"));
+
+        // Layout inside the box: dirs, title input, desc input, label select
+        let inbox_layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Min(3),
                 Constraint::Length(3),
                 Constraint::Length(3),
                 Constraint::Length(5), // label box
-                Constraint::Length(1), // help
             ])
             .split(inner_area);
-        frame.render_widget(dirs, layout[0]);
-        frame.render_widget(title_input, layout[1]);
-        frame.render_widget(desc_input, layout[2]);
-        frame.render_widget(label_list, layout[3]);
+        frame.render_widget(dirs, inbox_layout[0]);
+        frame.render_widget(title_input, inbox_layout[1]);
+        frame.render_widget(desc_input, inbox_layout[2]);
+        frame.render_widget(glab_label_list, inbox_layout[3]);
+
+        // Help bar at the very bottom, outside the box
         let help = Paragraph::new(self.screen.help())
             .centered()
             .style(Style::default().fg(Color::DarkGray));
-        frame.render_widget(help, layout[4]);
+        frame.render_widget(help, main_layout[1]);
     }
 
     fn render_reviewer_selection(&mut self, frame: &mut Frame) {
-        use ratatui::layout::{Constraint, Direction, Layout};
-        use ratatui::style::{Color, Style};
-        use ratatui::widgets::{ListItem, Paragraph};
-        let title = Line::from("Select Reviewers").bold().blue().centered();
+        let title = create_title("Reviewer Selection");
         let items: Vec<ListItem> = self
             .cfg
             .reviewers
@@ -287,7 +301,7 @@ impl App {
             })
             .collect();
         let list = List::new(items).block(Block::bordered().title(title));
-        let chunks = Layout::default()
+        let layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Min(1),
@@ -295,19 +309,16 @@ impl App {
                 Constraint::Length(1),
             ])
             .split(frame.area());
-        frame.render_widget(list, chunks[0]);
+        frame.render_widget(list, layout[0]);
         let desc = Paragraph::new("Select reviewers for the MR").centered();
-        frame.render_widget(desc, chunks[1]);
+        frame.render_widget(desc, layout[1]);
         let help = Paragraph::new(self.screen.help())
             .centered()
             .style(Style::default().fg(Color::DarkGray));
-        frame.render_widget(help, chunks[2]);
+        frame.render_widget(help, layout[2]);
     }
 
     fn render_overview(&mut self, frame: &mut Frame) {
-        use ratatui::layout::{Constraint, Direction, Layout};
-        use ratatui::style::{Color, Style};
-        use ratatui::widgets::Paragraph;
         let selected_dirs: Vec<&String> = self
             .selected_repos
             .iter()
@@ -560,6 +571,13 @@ impl App {
     fn quit(&mut self) {
         self.running = false;
     }
+}
+
+fn create_title(text: &str) -> Line<'static> {
+    Line::from(format!("Multi MR - {}", text))
+        .bold()
+        .blue()
+        .centered()
 }
 
 pub struct MergeRequest {
