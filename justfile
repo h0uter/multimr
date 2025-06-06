@@ -10,3 +10,6 @@ install:
 
 run:
     cargo run --bin mmr
+
+doc:
+    cargo doc --no-deps --open
