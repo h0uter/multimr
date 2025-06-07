@@ -126,6 +126,7 @@ impl App {
                     .arg("rev-parse")
                     .arg("--is-inside-work-tree")
                     .current_dir(app.config.working_dir.join(dir))
+                    .stderr(Stdio::null())
                     .stdout(Stdio::null())
                     .status()
                     .is_ok()
