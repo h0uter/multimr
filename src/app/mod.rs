@@ -106,7 +106,6 @@ impl App {
 
         // Populate dirs with all directories in the current working directory
         if let Ok(entries) = fs::read_dir(&app.config.working_dir) {
-            // TODO: ensure we only show git directories
             app.dirs = entries
                 .filter_map(|entry| entry.ok())
                 .filter_map(|entry| {
