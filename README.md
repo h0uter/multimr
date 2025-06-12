@@ -5,13 +5,9 @@
     <div align="center">
     <img src="https://raw.githubusercontent.com/h0uter/multimr/main/.readme/screen.png" alt="alt text" width="350" height="whatever">
     </div>
-  <!-- <h3 align="center">humid</h3> -->
 
   <p align="center">
     <b>MultiMR</b> is a Terminal User Interface (TUI) app to create identical merge requests across multiple repositories. Currently, it only supports Gitlab.
-    <!-- <br /> -->
-    <!-- <a href="https://h0uter.github.io/smflow"><strong>Explore the docs »</strong></a> -->
-    <!-- <br /> -->
     <br />
     <a href="https://github.com/h0uter/multimr/issues/new?labels=bug&title=New+bug+report">Report Bug</a>
     ·
