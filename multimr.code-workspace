@@ -1,0 +1,16 @@
+{    "folders": [
+        {
+            "path": "."
+        },
+        {
+            "path": "../gudlab"
+        },
+        {
+            "path": "src_repos/common-package-1"
+        },
+        {
+            "path": "src_repos/common-package-2"
+        }
+    ],
+    "settings": {}
+}

@@ -1,12 +1,24 @@
 [package]
 name = "multimr"
 version = "0.1.0"
-description = "easily create identical MR/PRs on multiple repo's."
+description = "Easily create identical MR/PRs on multiple repo's."
 authors = ["W. Meijer <houterm@gmail.com>"]
-license = "MIT"
+license = "Apache-2.0"
 edition = "2024"
+
+[[bin]]
+name = "mmr"
+path = "src/main.rs"
+
+[[bin]]
+name = "multimr"
+path = "src/main.rs"
 
 [dependencies]
 crossterm = "0.28.1"
 ratatui = "0.29.0"
 color-eyre = "0.6.3"
+toml = "0.8.22"
+serde = { version = "1.0.219", features = ["derive"] }
+git2 = "0.20.2"
+clap = { version = "4.5.39", features = ["derive"] }
