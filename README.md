@@ -26,6 +26,13 @@ Often in robotics projects certain subsystems are developed in separate reposito
 - Override settings with command line arguments
 - Preview branches of the repositories before creating merge requests
 
+## Quick start
+
+1. Install multimr using `cargo install multimr`
+2. Install the [Gitlab CLI tool](https://gitlab.com/gitlab-org/cli)
+3. Authenticate with Gitlab CLI tool using `glab auth login`
+4. Create a `multimr.toml` file in the root of your project see example here: [multimr.toml](multimr.toml) and schema here [Multimr.toml schema](./multimr.schema.json)
+
 ## CLI
 
 ```txt
