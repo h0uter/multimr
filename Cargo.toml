@@ -1,10 +1,24 @@
 [package]
 name = "multimr"
 version = "0.1.0"
-description = "Easily create identical MR/PRs on multiple repo's."
+description = "Create identical MR/PRs on multiple repositories."
 authors = ["W. Meijer <houterm@gmail.com>"]
 license = "Apache-2.0"
 edition = "2024"
+repository = "https://github.com/h0uter/multimr"
+documentation = "https://docs.rs/multimr"
+readme = "README.md"
+keywords = [
+    "git",
+    "gitlab",
+    "github",
+    "merge request",
+    "pull request",
+    "multimr",
+    "multi repo",
+    "tools",
+]
+categories = ["development-tools", "command-line-utilities"]
 
 [[bin]]
 name = "mmr"
