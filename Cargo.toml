@@ -11,9 +11,9 @@ readme = "README.md"
 keywords = [
     "git",
     "gitlab",
-    "merge request",
-    "pull request",
-    "multi repo",
+    "mergerequest",
+    "pullrequest",
+    "repository",
 ]
 categories = ["development-tools", "command-line-utilities"]
 
