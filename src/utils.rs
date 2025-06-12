@@ -21,7 +21,7 @@ pub(crate) fn ensure_glab_installed() {
         .is_err()
     {
         eprintln!(
-            "[Error] Gitlab CLI `glab` is not installed. Please install it to use this application."
+            "[Error] GitLab CLI `glab` is not installed. Please install it to use this application."
         );
         std::process::exit(1);
     }
