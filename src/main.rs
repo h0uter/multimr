@@ -19,7 +19,7 @@ struct Cli {
 }
 
 fn main() -> color_eyre::Result<()> {
-    color_eyre::install()?; // setup errror handling
+    color_eyre::install()?; // setup error handling
 
     let cli = Cli::parse(); // parse the cli first so the user can always run --help or --version
 
