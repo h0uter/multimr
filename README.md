@@ -1,37 +1,45 @@
-# Multi MR
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://pre-commit.com)
 
-## TODO's
+<br />
+<div align="center">
+    <div align="center">
+    <img src="https://raw.githubusercontent.com/h0uter/multimr/main/.readme/screen.png" alt="alt text" width="350" height="whatever">
+    </div>
+  <!-- <h3 align="center">humid</h3> -->
 
-- [ ] make a list of UI/UX improvements: 20mins
-- [ ] Write a readme with a description of the project, how to install it, how to use it, and how to contribute: 20mins
+  <p align="center">
+    <b>MultiMR</b> is a Terminal User Interface (TUI) app to create identical merge requests across multiple repositories. Currently, it only supports Gitlab.
+    <!-- <br /> -->
+    <!-- <a href="https://h0uter.github.io/smflow"><strong>Explore the docs »</strong></a> -->
+    <!-- <br /> -->
+    <br />
+    <a href="https://github.com/h0uter/multimr/issues/new?labels=bug&title=New+bug+report">Report Bug</a>
+    ·
+    <a href="https://github.com/h0uter/multimr/issues/new?labels=enhancement&title=New+feature+request">Request Feature</a>
+  </p>
+</div>
+
+## Why?
+
+Often in robotics projects certain subsystems are developed in separate repositories. When some update requires cross-cutting changes in multiple repositories, it is useful to create identical merge requests across all of them. This tool automates that process.
 
 ## Features
 
-- [ ] vizualize the branches of the src_repo's
-- [ ] Introduce option to create MR's as draft
-- [ ] add related merge requests in description of the merge request
-- [x] run simplest verion at level of `gudlab`
-  - [x] Actually interface with the glab cli as backend.
-    - [ ] Setup in such a way that we could also easilly switch to the gitlab native crate.
-  - [x] add logic to automatically create branches in the src_repo's
-- [x] place default user in `config.toml`, so it can be used to assign the MR.
-- [x] add dry run command to test the workflow without actually creating branches or merge requests.
-- [x] add some logic to handle a pre-commit hook that changes some files.
-- [x] setup the CLI so it can be used to overwrite the TOML config file.
-- [ ] use external crates for more natural user prompting. <https://github.com/ratatui/ratatui/tree/main/examples/apps/input-form>
+- Create identical merge requests across multiple repositories
+- Specify reviewers, assignee and other settings in a `multimr.toml` file
+- Override settings with command line arguments
+- Preview branches of the repositories before creating merge requests
 
-## Fixes
+## CLI
 
-- [x] Currently `glab` output messes up the tui.
-  - [x] Find out what causes the output
-  - [x] Show the output in the tui window instead of the terminal or just close the tui and then run the commands afterwards.
-- [x] If I cd into src_repos and run `mmr`, I get the error "Assignee is required" this is not very user friendly.
-  - Now we just see that there is no config.
+```txt
+Easily create identical MR/PRs on multiple repo's.
 
-## Workflows
+Usage: multimr [OPTIONS]
 
-- **from main workflow::** starting from everything on main, make some quick changes on develop without commiting them, then automatically create new branches, commit the changes, push the branch, and create a merge request.
-  - good for small cross cutting changes, like updating pre-commit tool versions or updating dependencies.
-- **from ft/fx workflow::** we are already on various feature branches, we just want to create identical merge requests for all of them.
-  - Good for when started working on a single feature branch, but then later realize that adding this feature will require changes in multiple repositories.
-  - [ ] is there any harm in creating a new branch anyway? I think not.
+Options:
+      --dry-run              Run in dry-run mode (do not actually create MRs)
+      --assignee <ASSIGNEE>  Overwrite the assignee specified in multimr.toml
+  -h, --help                 Print help
+  -V, --version              Print version
+```
