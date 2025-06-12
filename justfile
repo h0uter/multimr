@@ -24,3 +24,9 @@ fix:
     cargo fmt --all
     cargo clippy --fix --all-features --allow-dirty --allow-staged
     cargo fix --allow-dirty --allow-staged
+
+release:
+    cargo package
+    cargo publish
+    git tag -a v$(cargo pkgid | sed 's/.*#//') -m "Release v$(cargo pkgid | sed 's/.*#//')"
+    git push origin main --tags
