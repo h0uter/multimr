@@ -29,7 +29,7 @@ path = "src/main.rs"
 crossterm = "0.28.1"
 ratatui = "0.29.0"
 color-eyre = "0.6.3"
-toml = "0.8.22"
+toml = "0.8.23"
 serde = { version = "1.0.219", features = ["derive"] }
 git2 = "0.20.2"
 clap = { version = "4.5.39", features = ["derive"] }
